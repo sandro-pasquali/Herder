@@ -1,0 +1,294 @@
+if(typeof exports === 'object' && exports) {
+    var herder = require("./herder.js");
+} 
+
+//	
+//	SERIAL ASYNC
+//
+herder
+.serial([1,2,3,4,5])
+.actor(
+
+	function(it, idx, res, next) {
+		setTimeout(function() {
+			next(it * 2);
+		}, (Math.random() * 1000));
+	},
+	
+	function(it, idx, res, next) {
+		setTimeout(function() {
+			next(it & 1);
+		}, (Math.random() * 1000));
+	}
+)
+.on("data", function(data) {
+	console.log("serial data last: " + data.last()); 
+})
+.on("end", function(result) {
+	console.log("FULL SERIAL RESULT OBJECT");
+	console.log(result.stack());
+})
+.start();
+
+herder
+.serial(
+	function(idx, res, next) {
+		console.log("A");
+		next(1);
+	},
+	function(idx, res, next) {
+		console.log("B");
+		next(1);
+	},
+	function(idx, res, next) {
+		console.log("C");
+		next(1);
+	},
+	function(idx, res, next) {
+		console.log("D");
+		next(1);
+	}
+)
+.start()
+
+.start(
+	function(idx, res, next) {
+		console.log("A1");
+		next(2);
+	},
+	function(idx, res, next) {
+		console.log("B1");
+		next(2);
+	}
+)
+
+.actor(
+	function(it, idx, res, next) {
+		next("actor1 got: " + it);
+	},
+	function(it, idx, res, next) {
+		next("actor2 got: " + it);
+	},
+	function(it, idx, res, next) {
+		next("actor3 got: " + it);
+	}
+)
+.on("end", function(res) {
+	console.log("MULTISTART RESULTS");
+	console.log(res.stack());
+})
+.start(["fee","fi","fo","fum"])
+
+//	
+//	PARALLEL ASYNC
+//
+herder
+.parallel([1,2,3,4,5])
+.actor(
+
+	function(it, idx, res, next) {
+		setTimeout(function() {
+			next(it * 2);
+		}, (Math.random() * 1000));
+	},
+	
+	function(it, idx, res, next) {
+		setTimeout(function() {
+			next(it & 1);
+		}, (Math.random() * 1000));
+	}
+)
+.on("data", function(data, idx) {
+	console.log("parallel data idx: " + idx + " last: " + data.last());
+})
+.on("end", function(result) {
+	console.log("FULL PARALLEL RESULT OBJECT");
+	console.log(result.stack());
+})
+.start();
+
+//	
+//	REDUCE
+//
+
+var reducer = herder
+.serial()
+.actor(function(it, idx, res, next) {
+	next(res.last() ? res.last() + it : it);
+})
+.on("end", function(res) {
+	console.log("REDUCED");
+	console.log(res.last());
+});
+
+reducer
+.start([10,10,10]);
+
+reducer
+.start(["a","b","c"]);
+
+//
+//	MAP
+//
+
+var map = herder
+.parallel()
+.on("error", function(res) {		
+	console.log("MAP ERRORED...");
+	this.stop();
+})
+.on("stop", function() {
+	console.log("MAP TERMINATED...");
+})
+.on("end", function(res) {
+	console.log("MAP");
+	console.log(res.stack());
+});
+
+map
+.actor(function(it, idx, res, next) {
+	next(it * 2);
+})
+.start([1,2,3,4,5]);
+
+map
+.start([10,20,30,40,50]);
+
+map
+.actor(function(it, idx, res, next) {
+	res.error(true);
+	next(it * 2);
+})
+.start([1,2,3,4,5]);
+
+map
+.start([10,20,30,40,50]);
+
+map
+.actor(function(it, idx, res, next) {
+	next(it.toUpperCase());
+})
+.start(["foo","bar"]);
+
+var eventedMap = herder
+.parallel()
+.on("data", function(res, idx) {
+	res.stack(idx, Math.pow(2, res.last()));
+})
+.on("end", function(res) {
+	console.log("PURELY EVENTED MAP");
+	console.log(res.stack());
+});
+
+eventedMap.start([1,2,3,4,5]);
+eventedMap.start([6,7,8,9,10]);
+
+//	
+//	STATE MACHINE
+//
+
+herder
+.serial()
+.addState({
+  initial: 'none',
+  events: [
+	{ name: 'openTag',  	from: ['none','inner','open','closed'],  	to: 'open' },
+	{ name: 'closeTag', 	from: ['inner','closed','open'], 			to: 'closed'},
+	{ name: 'innerHTML', 	from: ['open','inner','closed'], 			to: 'inner'}
+]})
+.actor(
+	function(it, idx, res, next) {
+		if(it.match(/^<\/[^>]+>$/)) {
+			this.state.closeTag();
+		} else if(it.match(/^<[^>]+>$/)) {
+			this.state.openTag();
+		} else {
+			this.state.innerHTML();
+		}
+		next(this.state.current);
+	}
+)
+.on("end", function(res) {
+	console.log("HTML STATE END");
+	console.log(res);
+})
+.on("openTag", function() {
+	console.log("OPEN TAG EVENT....");
+	console.log(arguments);
+})
+.on("enteropen", function() {
+	console.log("ENTER OPEN STATE...");
+	console.log(arguments);
+})
+.on("leaveopen", function() {
+	console.log("LEAVE OPEN STATE...");
+	console.log(arguments);
+})
+.start(['<html>','<div>','hello','</div>','</html>']);
+
+var login = herder
+.serial()
+.addState({
+  initial: 'none',
+  final: 'confirmed',
+  events: [
+	{ name: 'candidate',	from: 'none',						to: 'candidate'},
+	{ name: 'accepted', 	from: ['candidate', 'denied'],  	to: 'accepted'},
+	{ name: 'denied', 		from: ['candidate','accepted'], 	to: 'denied'},
+	{ name: 'confirmed', 	from: 'accepted', 					to: 'confirmed'}
+]})
+.on("candidate", function(ev, from, to, creds) {
+	if(creds.password === "safe!") {
+		this.state.accepted(creds);
+	}
+})
+.on("accepted", function(ev, from, to, creds) {
+	var serverLoad = 13;
+	if(serverLoad < 20) {
+		return this.state.confirmed(creds);
+	}
+	this.state.denied(creds);
+})
+.on("denied", function(ev, from, to, creds) {
+	console.log("DENIED");
+	console.log(creds);
+	this.stop();
+})
+.on("confirmed", function(ev, from, to, creds) {
+	console.log("CONFIRMED");
+	console.log(creds);
+	this.stop();
+})
+.start(function() {
+	this.state.candidate({
+		username	: "bobloblaw",
+		password	: "safe!"
+	});
+})
+
+//	
+//	TIMEOUT
+//
+herder
+.parallel()
+.timeout(1)
+.on("timeout", function() {
+	console.log("TIMED OUT");
+	console.log(arguments);
+})
+.actor(function(it, idx, res, next) {
+	setTimeout(next, 1000);
+})
+.start();
+
+//
+//	Hot push to live buffer
+//
+map
+.actor(function(it, idx, res, next) {
+	if(res.length() < 20) {
+		res.push(parseInt(Math.random() * 1000));
+	}	
+	next(it * 2);
+})
+.start([1,2,3,4,5]);
