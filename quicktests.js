@@ -8,7 +8,6 @@ if(typeof exports === 'object' && exports) {
 herder
 .serial([1,2,3,4,5])
 .actor(
-
 	function(it, idx, res, next) {
 		setTimeout(function() {
 			next(it * 2);
@@ -30,6 +29,37 @@ herder
 })
 .start();
 
+//	
+//	PARALLEL ASYNC
+//
+herder
+.parallel([1,2,3,4,5])
+.actor(
+
+	function(it, idx, res, next) {
+		setTimeout(function() {
+			next(it * 2);
+		}, (Math.random() * 1000));
+	},
+	
+	function(it, idx, res, next) {
+		setTimeout(function() {
+			next(it & 1);
+		}, (Math.random() * 1000));
+	}
+)
+.on("data", function(data, idx) {
+	console.log("parallel data idx: " + idx + " last: " + data.last());
+})
+.on("end", function(result) {
+	console.log("FULL PARALLEL RESULT OBJECT");
+	console.log(result.stack());
+})
+.start();
+
+//
+//	TAMING CALLBACKS
+//
 herder
 .serial(
 	function(idx, res, next) {
@@ -79,33 +109,43 @@ herder
 })
 .start(["fee","fi","fo","fum"])
 
-//	
-//	PARALLEL ASYNC
-//
 herder
-.parallel([1,2,3,4,5])
-.actor(
-
-	function(it, idx, res, next) {
+.parallel(
+	function(idx, res, next) {
 		setTimeout(function() {
-			next(it * 2);
-		}, (Math.random() * 1000));
+			next("first");
+		}, parseInt(Math.random() * 500));
 	},
-	
-	function(it, idx, res, next) {
+	function(idx, res, next) {
 		setTimeout(function() {
-			next(it & 1);
-		}, (Math.random() * 1000));
+			next("second");
+		}, parseInt(Math.random() * 500));
+	},
+	function(idx, res, next) {
+		setTimeout(function() {
+			next("third");
+		}, parseInt(Math.random() * 500));
+	},
+	function(idx, res, next) {
+		setTimeout(function() {
+			next("fourth");
+		}, parseInt(Math.random() * 500));
+	},
+	function(idx, res, next) {
+		setTimeout(function() {
+			next("fifth");
+		}, parseInt(Math.random() * 500));
 	}
 )
-.on("data", function(data, idx) {
-	console.log("parallel data idx: " + idx + " last: " + data.last());
+.on("data", function(res) {
+	console.log("PARALLEL EXEC NEXT:");
+	console.log(res.last());
 })
-.on("end", function(result) {
-	console.log("FULL PARALLEL RESULT OBJECT");
-	console.log(result.stack());
+.on("end", function(res) {
+	console.log("PARALLEL EXEC FINAL:");
+	console.log(res.stack());
 })
-.start();
+.start()
 
 //	
 //	REDUCE
