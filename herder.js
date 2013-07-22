@@ -1,6 +1,6 @@
 "use strict";
 
-(function(env) {
+(function(ENV) {
 
 /*
 
@@ -295,6 +295,13 @@ function Builder(buffer, iterator) {
 			$this._timeout && ((res.endMs - res.startMs) > $this._timeout) && $this.emit("timeout", res.api(), idx);
 			$this.state && $this.state.isFinished() && $this.emit("finished", res.api(), idx);
 		};
+		
+		var forceAsync = function(f, a) {
+			(ENV.setImmediate || setTimeout)(function() {
+				console.log("---> FORCE --->");
+				f(a);
+			}, 0);
+		};
 
 		(runner = function(runs) {
 			if(runs === ops.length) {
@@ -304,7 +311,7 @@ function Builder(buffer, iterator) {
 			var fn 	= ops[runs];			
 			results.grouped[runs] = [];
 
-			iterator($this, results, runner, runs, fn, reportEvents);
+			iterator($this, results, runner, runs, fn, reportEvents, forceAsync);
 		})(0);
 		
 		return this;
@@ -382,6 +389,11 @@ Builder.prototype = new function() {
 		return this;
 	};
 	
+	this.async = function() {
+		this._async = true;
+		return this;
+	};
+	
 	this.emit = function(event) {
 		var args = ARR_SLICE.call(arguments, 1);
 		if(!this._events || !this._events[event]) {
@@ -406,7 +418,7 @@ Builder.prototype = new function() {
 
 var facade = {
 	serial : function() {
-		return new Builder(PROC_ARGS(arguments), function($this, results, runner, runs, fn, reportEvents) {
+		return new Builder(PROC_ARGS(arguments), function($this, results, runner, runs, fn, reportEvents, forceAsync) {
 			var iter;
 			(iter = function(idx) {
 				fn.call($this, results.buffer[idx], idx, results.api(), function(res) {
@@ -420,14 +432,18 @@ var facade = {
 					
 					reportEvents(idx, results);
 
-					++idx < results.buffer.length ? iter(idx) : runner(++runs);
+					++idx < results.buffer.length 
+					? $this._async 
+						? forceAsync(iter, idx) 
+						: iter(idx) 
+					: runner(++runs);
 				});
 			})(0);	
 		});
 	},
 	
 	parallel : function() {
-		return new Builder(PROC_ARGS(arguments), function($this, results, runner, runs, fn, reportEvents) {
+		return new Builder(PROC_ARGS(arguments), function($this, results, runner, runs, fn, reportEvents, forceAsync) {
 			var cnt = 0;
 			var iter;
 			(iter = function(idx) {
@@ -447,7 +463,7 @@ var facade = {
 					
 					++cnt === results.buffer.length && runner(++runs);
 				});
-				(idx +1) < results.buffer.length && iter(idx +1);
+				(idx +1) < results.buffer.length && ($this._async ? forceAsync(iter, idx +1) : iter(idx +1));
 			})(0);
 		});
 	}

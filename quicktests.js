@@ -79,6 +79,12 @@ herder
 		next(1);
 	}
 )
+
+//	Force asynchronous behavior
+//	Observe difference when enabled or disabled
+//
+.async()
+
 .start()
 
 .start(
