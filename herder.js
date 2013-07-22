@@ -228,8 +228,8 @@ function Builder(buffer, iterator) {
 			errored	: false,
 			buffer	: buffer,
 			last	: null,
-			stack	: [],
 			grouped	: [],
+			actual	: [],
 			startMs	: new Date().getTime(),
 			api		: function() {
 				var $this = this;
@@ -246,11 +246,25 @@ function Builder(buffer, iterator) {
 					grouped : function() {
 						return $this.grouped;
 					},
-					stack : function(idx, v) {
-						if(idx === void 0) {
-							return $this.stack;
+					stack : function() {
+						var grp = $this.grouped;
+						var out = [];
+						var x 	= 0;
+						
+						while(x < grp.length) {
+							out = out.concat(grp[x++]);
 						}
-						$this.stack[idx] = v;
+						
+						return out;
+					},
+					actual : function(idx, v) {
+						if(idx === void 0) {
+							return $this.actual;
+						} else if(!v) {
+							return $this.actual.push(idx);
+						}
+						
+						$this.actual[idx] = v;
 					},
 					runtime : function() {
 						return {
@@ -278,7 +292,7 @@ function Builder(buffer, iterator) {
 			res.endMs = new Date().getTime();
 			$this.emit("data", res.api(), idx);
 			res.errored && $this.emit("error", res.api(), idx);
-			$this._timeout && ((res.endMs - res.startMs) > $this._timeout) && $this.emit("timeout", res.api(), idx) 
+			$this._timeout && ((res.endMs - res.startMs) > $this._timeout) && $this.emit("timeout", res.api(), idx);
 			$this.state && $this.state.isFinished() && $this.emit("finished", res.api(), idx);
 		};
 
@@ -298,21 +312,24 @@ function Builder(buffer, iterator) {
 };
 
 Builder.prototype = new function() {
-
 	this.addState = function(smDef) {
-		var state = this.state = StateMachine.create(smDef);
-		!state.initial && state.startup();
+	
 		var evs = smDef.events;
+		
 		if(!evs) {
 			throw "Invalid state machine definition";
 		}
+		
+		var state = this.state = StateMachine.create(smDef);
+		!state.initial && state.startup();
+		
 		var len 	= evs.length;
 		var $this 	= this;
 		var evname;
 		
 		var emit = function(name, args) {
 			$this.emit.apply($this, [name].concat(ARR_SLICE.call(args))); 
-		}
+		};
 				
 		//	Set state event emits
 		//
@@ -338,6 +355,14 @@ Builder.prototype = new function() {
 		return this;
 	};
 	
+	this.context = function(ctxt) {
+		if(ctxt !== void 0) {
+			this._context = ctxt;
+			return this;
+		}
+		return this._context;
+	};
+	
 	this.timeout = function(ms) {
 		this._timeout = ms;
 		return this;
@@ -347,6 +372,13 @@ Builder.prototype = new function() {
 		this._events = this._events || {};
 		this._events[event] = this._events[event] || [];
 		this._events[event].push(fn);
+		return this;
+	};
+	
+	this.off = function(event) {
+		if(this._events && this._events[event]) {
+			this._events[event].length = 0;
+		}
 		return this;
 	};
 	
@@ -383,8 +415,8 @@ var facade = {
 						return;
 					}
 					results.last = res;
-					results.stack.push(res);
 					results.grouped[runs].push(res);
+					res !== void 0 && results.actual.push(res);
 					
 					reportEvents(idx, results);
 
@@ -406,8 +438,10 @@ var facade = {
 					}
 
 					results.last = res;
-					results.stack[runs*results.buffer.length + idx] = res;
 					results.grouped[runs][idx] = res;
+					if(res !== void 0) {
+						results.actual[idx] = res;
+					}
 					
 					reportEvents(idx, results);
 					

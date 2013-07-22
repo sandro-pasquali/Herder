@@ -173,15 +173,103 @@ map
 var eventedMap = herder
 .parallel()
 .on("data", function(res, idx) {
-	res.stack(idx, Math.pow(2, res.last()));
+	res.actual(idx, Math.pow(2, res.last()));
 })
 .on("end", function(res) {
 	console.log("PURELY EVENTED MAP");
-	console.log(res.stack());
+	console.log(res.actual());
 });
 
 eventedMap.start([1,2,3,4,5]);
 eventedMap.start([6,7,8,9,10]);
+
+//	
+//	FILTER
+//
+var evens = herder
+.parallel()
+.actor(function(it, idx, res, next) {
+	it%2 === 0 && res.actual(it);
+	next();
+})
+.on("end", function(res) {
+	console.log("FILTERED:");
+	console.log(res.actual());
+})
+.start([1,2,3,4,5,6,7,8,9]);
+
+//	
+//	SOME
+//
+var somePet = herder
+.parallel()
+.actor(function(it, idx, res, next) {
+	if(this.context() === it) {
+		this.stop();
+		return this.emit("end", res, idx);
+	}
+	next();
+})
+
+somePet
+.context("cat")
+.on("end", function(res, idx) {
+	console.log("SOME PET");
+	console.log(idx);
+})
+.start(["fish","dog","cat","turtle"])
+
+somePet
+.context("turtle")
+.off("end")
+.on("end", function(res, idx) {
+	console.log("SOME PET 2");
+	console.log(idx);
+})
+.start()
+
+//
+//	EVERY
+//
+var every = herder
+.parallel()
+.actor(function(it, idx, res, next) {
+	res.actual(it === this.context() ? idx : void 0);
+	next();
+})
+.on("end", function(res) {
+	this.emit("result", res.actual().length === res.length());
+})
+
+every
+.context(2)
+.on("result", function(bool) {
+	console.log("EVERY");
+	console.log(bool);
+})
+.start([2,2,2,2])
+
+every
+.start([2,2,3,2,2])
+
+//
+//	FIND
+//
+var needleFinder = herder
+.parallel()
+.actor(function(it, idx, res, next) {
+	if(it === "needle") {
+		console.log("FOUND NEEDLE at index: " + idx);
+		return this.stop();
+	}
+	next();
+});
+
+needleFinder
+.start(["chicken","egg","needle","haystack"]);
+
+needleFinder
+.start(["jack","needle","hill","jill"]);
 
 //	
 //	STATE MACHINE
@@ -230,7 +318,7 @@ var login = herder
 .serial()
 .addState({
   initial: 'none',
-  final: 'confirmed',
+  terminal: 'confirmed',
   events: [
 	{ name: 'candidate',	from: 'none',						to: 'candidate'},
 	{ name: 'accepted', 	from: ['candidate', 'denied'],  	to: 'accepted'},
@@ -257,13 +345,16 @@ var login = herder
 .on("confirmed", function(ev, from, to, creds) {
 	console.log("CONFIRMED");
 	console.log(creds);
-	this.stop();
 })
-.start(function() {
+.on("finished", function(ev, from, to, creds) {
+	console.log("FINISHED......");
+})
+.start(function(idx, res, next) {
 	this.state.candidate({
 		username	: "bobloblaw",
 		password	: "safe!"
 	});
+	next();
 })
 
 //	
