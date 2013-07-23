@@ -224,30 +224,28 @@ function Builder(buffer, iterator) {
 		}];
 		
 		var	results	= {
-		
-			errored	: false,
 			buffer	: buffer,
 			last	: null,
 			grouped	: [],
 			actual	: [],
 			startMs	: new Date().getTime(),
 			api		: function() {
-				var $this = this;
+				var $local = this;
 				return {
 					error : function(err) {
 						if(err) {
-							return $this.errored = err;
+							$local.errored = err;
 						}
-						return $this.errored;
+						return $local.errored;
 					},
 					last : function() {
-						return $this.last;
+						return $local.last;
 					},
 					grouped : function() {
-						return $this.grouped;
+						return $local.grouped;
 					},
 					stack : function() {
-						var grp = $this.grouped;
+						var grp = $local.grouped;
 						var out = [];
 						var x 	= 0;
 						
@@ -259,26 +257,26 @@ function Builder(buffer, iterator) {
 					},
 					actual : function(idx, v) {
 						if(idx === void 0) {
-							return $this.actual;
+							return $local.actual;
 						} else if(!v) {
-							return $this.actual.push(idx);
+							return $local.actual.push(idx);
 						}
 						
-						$this.actual[idx] = v;
+						$local.actual[idx] = v;
 					},
 					runtime : function() {
 						return {
-							start 	: $this.startMs,
-							end		: $this.endMs,
-							total	: $this.endMs - $this.startMs
+							start 	: $local.startMs,
+							end		: $local.endMs,
+							total	: $local.endMs - $local.startMs
 						};
 					},
 					push : function(v) {
 						v = typeof v !== "string" ? [v] : v;
-						$this.buffer = $this.buffer.concat(v);
+						$local.buffer = $local.buffer.concat(v);
 					},
 					length : function() {
-						return $this.buffer.length;
+						return $local.buffer.length;
 					}
 				};
 			}
@@ -298,7 +296,6 @@ function Builder(buffer, iterator) {
 		
 		var forceAsync = function(f, a) {
 			(ENV.setImmediate || setTimeout)(function() {
-				console.log("---> FORCE --->");
 				f(a);
 			}, 0);
 		};

@@ -441,3 +441,15 @@ herder
 	setTimeout(next, 1000);
 })
 .start();
+
+herder
+.parallel()
+.actor(function(it, idx, res, next) {
+	res.error("Boo");
+	next();
+})
+.on("error", function(res, idx) {
+	console.log("!!!!!!!!!ERRORED!!!!!!!!!");
+	console.log(res.error());
+})
+.start()

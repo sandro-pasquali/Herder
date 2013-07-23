@@ -107,7 +107,6 @@ var evens = herder
 
 map
 .actor(function(it, idx, res, next) {
-	res.error(true);
 	next(it * 2);
 })
 .start([1,2,3,4,5]);
@@ -281,3 +280,15 @@ every
 
 every
 .start([2,2,3,2,2])
+
+herder
+.parallel()
+.actor(function(it, idx, res, next) {
+	res.error("Boo");
+	next();
+})
+.on("error", function(res, idx) {
+	console.log("!!!!!!!!!ERRORED!!!!!!!!!");
+	console.log(res.error());
+})
+.start()

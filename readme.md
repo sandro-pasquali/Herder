@@ -5,11 +5,11 @@ This library allows you to create machines that process a list of instructions u
 
 Actors receive the current result set. Actors can be invoked serially or in parallel. 
 
-The machines are evented, such that a #data event is emitted on each iteration through the instruction list, to which is made available the current result set. When the machine is finished it emits #end.  
+The machines are evented, such that a `data` event is emitted on each iteration through the instruction list, to which is made available the current result set. When the machine is finished it emits `end`.  
 
 Additionally, the machine can be transformed into a true state machine, where state change events are programmable.
 
-Importantly, asynchronous execution is supported, such that an actor must yield (with #next) in order for the iteration to continue.
+Importantly, asynchronous execution is supported, such that an actor must yield (with `next`) in order for the iteration to continue.
 
 Consider the following:
 
@@ -97,7 +97,7 @@ Herder may be used as a straightforward async method taming tool:
 	//	A (or other...)
 	//	TAMED PARALLEL IS DONE
 	
-A #map method is easy to create
+A `map` method is easy to create
 
 	var map = herder
 	.parallel()
@@ -111,7 +111,7 @@ A #map method is easy to create
 	
 	//	[ 2, 4, 6, 8, 10 ]
 
-As is a #reduce method:
+As is a `reduce` method:
 
 	var reduce = herder
 	.serial()
@@ -132,7 +132,7 @@ As is a #reduce method:
 	
 	//	abc
 	
-Or a #filter (see [ResultObject](#ResultObject)):
+Or a `filter` (see [ResultObject](#ResultObject)):
 
 	var evens = herder
 	.parallel()
@@ -152,7 +152,6 @@ Machines can be re-used, redefined, or take a new list:
 
 	map
 	.actor(function(it, idx, res, next) {
-		res.error(true);
 		next(it * 2);
 	})
 	.start([1,2,3,4,5]);
@@ -225,7 +224,22 @@ The machine can also be stopped, such as when a search is complete:
 	
 	//	FOUND NEEDLE at index: 1
 	
-Note that a stopped machine can always be restarted with #start.
+Note that a stopped machine can always be restarted with `start`.
+
+Errors can be flagged:
+
+	herder
+	.parallel()
+	.actor(function(it, idx, res, next) {
+		next(res.error("Boo"));
+	})
+	.on("error", function(res, idx) {
+		console.log("!!!!!!!!!ERRORED!!!!!!!!!");
+		console.log(res.error());
+	})
+	.start()
+	
+Note that you are passing an error state on to the next iteration, at which point it will be handled. If this is an exception, you should `throw` instead.
 
 Machines can be given an operating context, which can be any type of value:
 
@@ -254,7 +268,7 @@ Machines can be given an operating context, which can be any type of value:
 	
 	//	false
 
-To create a state machine, pass a definition object to #addState (see [StateMachine](#StateMachine)):
+To create a state machine, pass a definition object to `addState` (see [StateMachine](#StateMachine)):
 
 	herder
 	.serial()
@@ -297,7 +311,7 @@ To create a state machine, pass a definition object to #addState (see [StateMach
 	//	LEAVE OPEN STATE...
 	//	HTML STATE END
 
-As you can see, multiple #from states are possible, sent as an array.
+As you can see, multiple `from` states are possible, sent as an array.
 
 In addition to setting an initial state, one can also set a terminal state:
 
@@ -379,7 +393,7 @@ State machines naturally throw on undefined transitions:
 		});
 	}, 100);
 
-The library expects asynchronicity to exist at the functional level -- your actors are making asynchronous calls. However, sometimes you will want a long operation (such as iterating a very long list) to be non blocking, especially in a NodeJS environment. You can force the machine to yield to the javascript execution context's event loop *on each iteration* with #async:
+The library expects asynchronicity to exist at the functional level -- your actors are making asynchronous calls. However, sometimes you will want a long operation (such as iterating a very long list) to be non blocking, especially in a NodeJS environment. You can force the machine to yield to the javascript execution context's event loop *on each iteration* with `async`:
 
 	.async()
 	
