@@ -8,7 +8,7 @@ The machines are evented, such that a #data event is emitted on each iteration t
 
 Additionally, the machine can be transformed into a true state machine, where state change events are programmable.
 
-Importantly, asynchronous execution is supported, such that an actor must yield in order for the iteration to continue.
+Importantly, asynchronous execution is supported, such that an actor must yield (with #next) in order for the iteration to continue.
 
 The following will broadast 2 -> 4 -> 6 -> 8 -> 10 -> [2,4,6,8,10]
 
