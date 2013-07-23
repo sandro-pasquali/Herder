@@ -264,7 +264,7 @@ To create a state machine, pass a definition object to #addState (see [StateMach
 		console.log("HTML STATE END");
 	})
 	.on("openTag", function() {
-		console.log("OPEN TAG EVENT....");
+		console.log("OPEN_TAG EVENT....");
 	})
 	.on("enteropen", function() {
 		console.log("ENTER OPEN STATE...");
@@ -273,6 +273,12 @@ To create a state machine, pass a definition object to #addState (see [StateMach
 		console.log("LEAVE OPEN STATE...");
 	})
 	.start(['<html>','<div>','hello','</div>','</html>']);
+	
+	//	ENTER OPEN STATE...
+	//	OPEN_TAG EVENT....
+	//	OPEN_TAG EVENT....
+	//	LEAVE OPEN STATE...
+	//	HTML STATE END
 
 As you can see, multiple #from states are possible, sent as an array.
 
