@@ -429,3 +429,15 @@ map
 	next(it * 2);
 })
 .start([1,2,3,4,5]);
+
+herder
+.parallel()
+.timeout(1)
+.on("timeout", function() {
+	console.log("TIMED OUT");
+	console.log(arguments);
+})
+.actor(function(it, idx, res, next) {
+	setTimeout(next, 1000);
+})
+.start();
