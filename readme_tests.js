@@ -63,6 +63,9 @@ herder
 		}, Math.random() * 100);
 	}
 )
+.on("end", function() {
+	console.log("TAMED PARALLEL IS DONE");
+})
 .start()
 
 var map = herder

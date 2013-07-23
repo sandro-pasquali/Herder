@@ -75,6 +75,9 @@ Herder may be used as a straightforward async method taming tool:
 			}, Math.random() * 100);
 		}
 	)
+	.on("end", function() {
+		console.log("TAMED PARALLEL IS DONE");
+	})
 	.start()
 	
 A #map method is easy to create
