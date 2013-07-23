@@ -236,6 +236,15 @@ var login = herder
 	next();
 })
 
+setTimeout(function() {
+	login.start(function() {
+		
+		//this.state.accepted();
+		
+		// 	Error: event accepted inappropriate in current state confirmed
+	});
+}, 100);
+
 var needleFinder = herder
 .parallel()
 .actor(function(it, idx, res, next) {

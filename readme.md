@@ -351,6 +351,17 @@ State machine control flow translates easily to evented models:
 		next();
 	})
 
+State machines naturally throw on undefined transitions:
+
+	setTimeout(function() {
+		login.start(function() {
+			
+			this.state.accepted();
+			
+			// 	Error: event accepted inappropriate in current state confirmed
+		});
+	}, 100);
+
 The library expects asynchronicity to exist at the functional level -- your actors are making asynchronous calls. However, sometimes you will want a long operation (such as iterating a very long list) to be non blocking, especially in a NodeJS environment. You can force the machine to yield to the javascript execution context's event loop *on each iteration* with #async:
 
 	.async()
