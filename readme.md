@@ -1,7 +1,7 @@
 Herder
 ------
 
-This library allows you to create machines which process a list of instructions using an optional list of processors (called "actors"). 
+This library allows you to create machines that process a list of instructions using an optional list of processors (called "actors"). 
 
 Actors receive the current result set. Actors can be invoked serially or in parallel. 
 
