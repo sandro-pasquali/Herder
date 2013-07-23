@@ -11,7 +11,7 @@ Additionally, the machine can be transformed into a true state machine, where st
 
 Importantly, asynchronous execution is supported, such that an actor must yield (with #next) in order for the iteration to continue.
 
-The following will broadast 2 -> 4 -> 6 -> 8 -> 10 -> [2,4,6,8,10]
+Consider the following:
 
 	herder
 	.serial([1,2,3,4,5])
@@ -29,6 +29,13 @@ The following will broadast 2 -> 4 -> 6 -> 8 -> 10 -> [2,4,6,8,10]
 		console.log(result.stack());
 	})
 	.start();
+	
+	//	2
+	//	4
+	//	6
+	//	8
+	//	10
+	//	[ 2, 4, 6, 8, 10 ]
 
 Herder may be used as a straightforward async method taming tool:
 
@@ -55,6 +62,10 @@ Herder may be used as a straightforward async method taming tool:
 	)
 	.start()
 	
+	//	A
+	//	B
+	//	C
+	
 	herder
 	.parallel(
 		function(idx, res, next) {
@@ -80,6 +91,11 @@ Herder may be used as a straightforward async method taming tool:
 		console.log("TAMED PARALLEL IS DONE");
 	})
 	.start()
+	
+	//	B
+	//	C
+	//	A (or other...)
+	//	TAMED PARALLEL IS DONE
 	
 A #map method is easy to create
 
