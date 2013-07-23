@@ -4,7 +4,7 @@ This library allows you to create machines which process a list of instructions 
 
 Actors receive the current result set. Actors can be invoked serially or in parallel. 
 
-The machines are evented, such that a #data event is emitted on each iteration through the instruction list, to which is made available the current result set.
+The machines are evented, such that a #data event is emitted on each iteration through the instruction list, to which is made available the current result set. When the machine is finished it emits #end.  
 
 Additionally, the machine can be transformed into a true state machine, where state change events are programmable.
 
@@ -198,12 +198,16 @@ The machine can also be stopped, such as when a search is complete:
 	needleFinder
 	.start(["chicken","egg","needle","haystack"]);
 	
+	//	FOUND NEEDLE at index: 2
+	
 	needleFinder
 	.start(["jack","needle","hill","jill"]);
 	
+	//	FOUND NEEDLE at index: 1
+	
 Note that a stopped machine can always be restarted with #start.
 
-Machines can be given an operating context:
+Machines can be given an operating context, which can be any type of value:
 
 	var every = herder
 	.parallel()
