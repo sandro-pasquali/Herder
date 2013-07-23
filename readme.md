@@ -290,18 +290,66 @@ In addition to setting an initial state, one can also set a terminal state:
 	  initial	: 'none',
 	  terminal	: 'done',
 	  events: [
-		{ name: 'complete',  	from: 'none',  	to: 'done' }
+		{ name: 'myCompleteEvent',  	from: 'none',  	to: 'done' }
 	]})
 	.actor(
 		function() {
-			this.state.complete();
+			this.state.myCompleteEvent();
 		}
 	)
-	.on("complete", function(res) {
-		console.log("COMPLETED");
-		console.log(res);
+	.on("myCompleteEvent", function(res) {
+		console.log("COMPLETE EVENT");
+	})
+	.on("enterdone", function() {
+		console.log("ENTER DONE STATE");
 	})
 	.start();
+
+State machine control flow translates easily to evented models:
+
+	var login = herder
+	.serial()
+	.addState({
+	  initial: 'none',
+	  terminal: 'confirmed',
+	  events: [
+		{ name: 'candidate',	from: 'none',						to: 'candidate'},
+		{ name: 'accepted', 	from: ['candidate', 'denied'],  	to: 'accepted'},
+		{ name: 'denied', 		from: ['candidate','accepted'], 	to: 'denied'},
+		{ name: 'confirmed', 	from: 'accepted', 					to: 'confirmed'}
+	]})
+	.on("candidate", function(ev, from, to, creds) {
+		if(creds.password === "safe!") {
+			return this.state.accepted(creds);
+		} 
+		this.state.denied(creds);
+	})
+	.on("accepted", function(ev, from, to, creds) {
+		var serverLoad = 13;
+		if(serverLoad < 20) {
+			return this.state.confirmed(creds);
+		}
+		this.state.denied(creds);
+	})
+	.on("denied", function(ev, from, to, creds) {
+		console.log("DENIED");
+		console.log(creds);
+		this.stop();
+	})
+	.on("confirmed", function(ev, from, to, creds) {
+		console.log("CONFIRMED");
+		console.log(creds);
+	})
+	.on("finished", function(ev, from, to, creds) {
+		console.log("FINISHED......");
+	})
+	.start(function(idx, res, next) {
+		this.state.candidate({
+			username	: "bobloblaw",
+			password	: "safe!"
+		});
+		next();
+	})
 
 The library expects asynchronicity to exist at the functional level -- your actors are making asynchronous calls. However, sometimes you will want a long operation (such as iterating a very long list) to be non blocking, especially in a NodeJS environment. You can force the machine to yield to the javascript execution context's event loop *on each iteration* with #async:
 

@@ -177,18 +177,64 @@ herder
   initial	: 'none',
   terminal	: 'done',
   events: [
-	{ name: 'complete',  	from: 'none',  	to: 'done' }
+	{ name: 'myCompleteEvent',  	from: 'none',  	to: 'done' }
 ]})
 .actor(
 	function() {
-		this.state.complete();
+		this.state.myCompleteEvent();
 	}
 )
-.on("complete", function(res) {
-	console.log("COMPLETED");
-	console.log(res);
+.on("myCompleteEvent", function(res) {
+	console.log("COMPLETE EVENT");
+})
+.on("enterdone", function() {
+	console.log("ENTER DONE STATE");
 })
 .start();
+
+var login = herder
+.serial()
+.addState({
+  initial: 'none',
+  terminal: 'confirmed',
+  events: [
+	{ name: 'candidate',	from: 'none',						to: 'candidate'},
+	{ name: 'accepted', 	from: ['candidate', 'denied'],  	to: 'accepted'},
+	{ name: 'denied', 		from: ['candidate','accepted'], 	to: 'denied'},
+	{ name: 'confirmed', 	from: 'accepted', 					to: 'confirmed'}
+]})
+.on("candidate", function(ev, from, to, creds) {
+	if(creds.password === "safe!") {
+		return this.state.accepted(creds);
+	}
+	this.state.denied(creds);
+})
+.on("accepted", function(ev, from, to, creds) {
+	var serverLoad = 13;
+	if(serverLoad < 20) {
+		return this.state.confirmed(creds);
+	}
+	this.state.denied(creds);
+})
+.on("denied", function(ev, from, to, creds) {
+	console.log("DENIED");
+	console.log(creds);
+	this.stop();
+})
+.on("confirmed", function(ev, from, to, creds) {
+	console.log("CONFIRMED");
+	console.log(creds);
+})
+.on("finished", function(ev, from, to, creds) {
+	console.log("FINISHED......");
+})
+.start(function(idx, res, next) {
+	this.state.candidate({
+		username	: "bobloblaw",
+		password	: "safe!"
+	});
+	next();
+})
 
 var needleFinder = herder
 .parallel()
