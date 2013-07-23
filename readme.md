@@ -1,4 +1,5 @@
 Herder
+------
 
 This library allows you to create machines which process a list of instructions using an optional list of processors (called "actors"). 
 
