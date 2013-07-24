@@ -62,19 +62,19 @@ herder
 //
 herder
 .serial(
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		console.log("A");
 		next(1);
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		console.log("B");
 		next(1);
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		console.log("C");
 		next(1);
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		console.log("D");
 		next(1);
 	}
@@ -83,16 +83,16 @@ herder
 //	Force asynchronous behavior
 //	Observe difference when enabled or disabled
 //
-.async()
+//.async()
 
 .start()
 
 .start(
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		console.log("A1");
 		next(2);
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		console.log("B1");
 		next(2);
 	}
@@ -117,27 +117,27 @@ herder
 
 herder
 .parallel(
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		setTimeout(function() {
 			next("first");
 		}, parseInt(Math.random() * 500));
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		setTimeout(function() {
 			next("second");
 		}, parseInt(Math.random() * 500));
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		setTimeout(function() {
 			next("third");
 		}, parseInt(Math.random() * 500));
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		setTimeout(function() {
 			next("fourth");
 		}, parseInt(Math.random() * 500));
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		setTimeout(function() {
 			next("fifth");
 		}, parseInt(Math.random() * 500));
@@ -395,7 +395,7 @@ var login = herder
 .on("finished", function(ev, from, to, creds) {
 	console.log("FINISHED......");
 })
-.start(function(idx, res, next) {
+.start(function(it, idx, res, next) {
 	this.state.candidate({
 		username	: "bobloblaw",
 		password	: "safe!"
@@ -453,3 +453,13 @@ herder
 	console.log(res.error());
 })
 .start()
+
+
+herder
+.parallel(function(it, idx, res, next) {
+	console.log("HIHIIHIIHHHIIHIIIIHIHIHIIHIIHIHIHI");
+	//res.push(it);
+})
+.timeout(10, true)
+.start()
+

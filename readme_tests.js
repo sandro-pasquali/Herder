@@ -21,19 +21,19 @@ herder
 
 herder
 .serial(
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		setTimeout(function() {
 			console.log("serial A");
 			next(1);
 		}, Math.random() * 100);
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		setTimeout(function() {
 			console.log("serial B");
 			next(1);
 		}, Math.random() * 100);
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		setTimeout(function() {
 			console.log("serial C");
 			next(1);
@@ -44,19 +44,19 @@ herder
 
 herder
 .parallel(
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		setTimeout(function() {
 			console.log("par A");
 			next(1);
 		}, Math.random() * 100);
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		setTimeout(function() {
 			console.log("par B");
 			next(1);
 		}, Math.random() * 100);
 	},
-	function(idx, res, next) {
+	function(it, idx, res, next) {
 		setTimeout(function() {
 			console.log("par C");
 			next(1);
@@ -227,7 +227,7 @@ var login = herder
 .on("finished", function(ev, from, to, creds) {
 	console.log("FINISHED......");
 })
-.start(function(idx, res, next) {
+.start(function(it, idx, res, next) {
 	this.state.candidate({
 		username	: "bobloblaw",
 		password	: "safe!"

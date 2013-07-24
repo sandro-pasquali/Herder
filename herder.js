@@ -197,7 +197,7 @@ var PROC_ARGS = function(args) {
 	if(typeof _args[0] === "function") {
 		return _args;
 	} 
-	return args[0];
+	return args[0] || [];
 };
 
 function Builder(buffer, iterator) {
@@ -207,18 +207,19 @@ function Builder(buffer, iterator) {
 		//
 		this._stop = null;
 		
-		if(newArgs) {
-			buffer = PROC_ARGS(arguments);
-		}
-		
-		buffer = buffer || [];
+		buffer = PROC_ARGS(newArgs ? arguments : buffer);
 
 		var $this 	= this;
 		var runner;
 		
-		var ops	= this._actor || [function(it, idx, res, next) {
+		//	Ensure that there is at least one actor to process #buffer.
+		//	If no actor, assign general function to handle two cases:
+		//	1. If next buffer item is a function, execute it.
+		//	2. If not a function, #next(value of buffer item)
+		//
+		var ops	= this._actor = this._actor || [function(it, idx, res, next) {
 			if(typeof it === "function") {
-				return it.call($this, idx, res, next);
+				return it.call($this, it, idx, res, next);
 			}
 			next(it);
 		}];
@@ -287,11 +288,23 @@ function Builder(buffer, iterator) {
 		//	Iterators should run this on each iteration after all updates have occurred
 		//
 		var reportEvents = function(idx, res) {
+		
 			res.endMs = new Date().getTime();
+			
+			$this._timeout 
+			&& ((res.endMs - res.startMs) > $this._timeout) 
+			&& $this.emit("timeout", res.api(), idx) 
+			&& $this._timeoutStop 
+			&& $this.stop();
+
 			$this.emit("data", res.api(), idx);
-			res.errored && $this.emit("error", res.api(), idx);
-			$this._timeout && ((res.endMs - res.startMs) > $this._timeout) && $this.emit("timeout", res.api(), idx);
-			$this.state && $this.state.isFinished() && $this.emit("finished", res.api(), idx);
+			
+			res.errored 
+			&& $this.emit("error", res.api(), idx);
+			
+			$this.state 
+			&& $this.state.isFinished() 
+			&& $this.emit("finished", res.api(), idx);
 		};
 		
 		var forceAsync = function(f, a) {
@@ -304,11 +317,10 @@ function Builder(buffer, iterator) {
 			if(runs === ops.length) {
 				return $this.emit("end", results.api());
 			}
-			
-			var fn 	= ops[runs];			
+	
 			results.grouped[runs] = [];
 
-			iterator($this, results, runner, runs, fn, reportEvents, forceAsync);
+			iterator($this, results, runner, runs, ops[runs], reportEvents, forceAsync);
 		})(0);
 		
 		return this;
@@ -367,8 +379,9 @@ Builder.prototype = new function() {
 		return this._context;
 	};
 	
-	this.timeout = function(ms) {
+	this.timeout = function(ms, stop) {
 		this._timeout = ms;
+		this._timeoutStop = stop;
 		return this;
 	};
 
@@ -415,7 +428,7 @@ Builder.prototype = new function() {
 
 var facade = {
 	serial : function() {
-		return new Builder(PROC_ARGS(arguments), function($this, results, runner, runs, fn, reportEvents, forceAsync) {
+		return new Builder(arguments, function($this, results, runner, runs, fn, reportEvents, forceAsync) {
 			var iter;
 			(iter = function(idx) {
 				fn.call($this, results.buffer[idx], idx, results.api(), function(res) {
@@ -440,7 +453,7 @@ var facade = {
 	},
 	
 	parallel : function() {
-		return new Builder(PROC_ARGS(arguments), function($this, results, runner, runs, fn, reportEvents, forceAsync) {
+		return new Builder(arguments, function($this, results, runner, runs, fn, reportEvents, forceAsync) {
 			var cnt = 0;
 			var iter;
 			(iter = function(idx) {
