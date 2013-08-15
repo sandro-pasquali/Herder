@@ -8,24 +8,24 @@ if(typeof exports === 'object' && exports) {
 herder
 .serial([1,2,3,4,5])
 .actor(
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		setTimeout(function() {
 			next(it * 2);
 		}, (Math.random() * 1000));
 	},
 	
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		setTimeout(function() {
 			next(it & 1);
 		}, (Math.random() * 1000));
 	}
 )
-.on("data", function(data) {
-	console.log("serial data last: " + data.last()); 
+.on("data", function() {
+	console.log("serial data last: " + this.results.last()); 
 })
-.on("end", function(result) {
+.on("end", function() {
 	console.log("FULL SERIAL RESULT OBJECT");
-	console.log(result.stack());
+	console.log(this.results.stack());
 })
 .start();
 
@@ -36,24 +36,24 @@ herder
 .parallel([1,2,3,4,5])
 .actor(
 
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		setTimeout(function() {
 			next(it * 2);
 		}, (Math.random() * 1000));
 	},
 	
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		setTimeout(function() {
 			next(it & 1);
 		}, (Math.random() * 1000));
 	}
 )
-.on("data", function(data, idx) {
-	console.log("parallel data idx: " + idx + " last: " + data.last());
+.on("data", function(idx) {
+	console.log("parallel data idx: " + idx + " last: " + this.results.last());
 })
-.on("end", function(result) {
+.on("end", function() {
 	console.log("FULL PARALLEL RESULT OBJECT");
-	console.log(result.stack());
+	console.log(this.results.stack());
 })
 .start();
 
@@ -62,19 +62,19 @@ herder
 //
 herder
 .serial(
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		console.log("A");
 		next(1);
 	},
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		console.log("B");
 		next(1);
 	},
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		console.log("C");
 		next(1);
 	},
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		console.log("D");
 		next(1);
 	}
@@ -88,68 +88,68 @@ herder
 .start()
 
 .start(
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		console.log("A1");
 		next(2);
 	},
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		console.log("B1");
 		next(2);
 	}
 )
 
 .actor(
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		next("actor1 got: " + it);
 	},
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		next("actor2 got: " + it);
 	},
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		next("actor3 got: " + it);
 	}
 )
-.on("end", function(res) {
+.on("end", function() {
 	console.log("MULTISTART RESULTS");
-	console.log(res.stack());
+	console.log(this.results.stack());
 })
 .start(["fee","fi","fo","fum"])
 
 herder
 .parallel(
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		setTimeout(function() {
 			next("first");
 		}, parseInt(Math.random() * 500));
 	},
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		setTimeout(function() {
 			next("second");
 		}, parseInt(Math.random() * 500));
 	},
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		setTimeout(function() {
 			next("third");
 		}, parseInt(Math.random() * 500));
 	},
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		setTimeout(function() {
 			next("fourth");
 		}, parseInt(Math.random() * 500));
 	},
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		setTimeout(function() {
 			next("fifth");
 		}, parseInt(Math.random() * 500));
 	}
 )
-.on("data", function(res) {
+.on("data", function() {
 	console.log("PARALLEL EXEC NEXT:");
-	console.log(res.last());
+	console.log(this.results.last());
 })
-.on("end", function(res) {
+.on("end", function() {
 	console.log("PARALLEL EXEC FINAL:");
-	console.log(res.stack());
+	console.log(this.results.stack());
 })
 .start()
 
@@ -159,12 +159,12 @@ herder
 
 var reducer = herder
 .serial()
-.actor(function(it, idx, res, next) {
-	next(res.last() ? res.last() + it : it);
+.actor(function(it, idx, next) {
+	next(this.results.last() ? this.results.last() + it : it);
 })
-.on("end", function(res) {
+.on("end", function() {
 	console.log("REDUCED");
-	console.log(res.last());
+	console.log(this.results.last());
 });
 
 reducer
@@ -179,20 +179,20 @@ reducer
 
 var map = herder
 .parallel()
-.on("error", function(res) {		
+.on("error", function() {		
 	console.log("MAP ERRORED...");
 	this.stop();
 })
 .on("stop", function() {
 	console.log("MAP TERMINATED...");
 })
-.on("end", function(res) {
+.on("end", function() {
 	console.log("MAP");
-	console.log(res.stack());
+	console.log(this.results.stack());
 });
 
 map
-.actor(function(it, idx, res, next) {
+.actor(function(it, idx, next) {
 	next(it * 2);
 })
 .start([1,2,3,4,5]);
@@ -201,8 +201,8 @@ map
 .start([10,20,30,40,50]);
 
 map
-.actor(function(it, idx, res, next) {
-	res.error(true);
+.actor(function(it, idx, next) {
+	this.results.error(true);
 	next(it * 2);
 })
 .start([1,2,3,4,5]);
@@ -211,19 +211,19 @@ map
 .start([10,20,30,40,50]);
 
 map
-.actor(function(it, idx, res, next) {
+.actor(function(it, idx, next) {
 	next(it.toUpperCase());
 })
 .start(["foo","bar"]);
 
 var eventedMap = herder
 .parallel()
-.on("data", function(res, idx) {
-	res.actual(idx, Math.pow(2, res.last()));
+.on("data", function(idx) {
+	this.results.actual(idx, Math.pow(2, this.results.last()));
 })
-.on("end", function(res) {
+.on("end", function() {
 	console.log("PURELY EVENTED MAP");
-	console.log(res.actual());
+	console.log(this.results.actual());
 });
 
 eventedMap.start([1,2,3,4,5]);
@@ -234,13 +234,13 @@ eventedMap.start([6,7,8,9,10]);
 //
 var evens = herder
 .parallel()
-.actor(function(it, idx, res, next) {
-	it%2 === 0 && res.actual(it);
+.actor(function(it, idx, next) {
+	it%2 === 0 && this.results.actual(it);
 	next();
 })
-.on("end", function(res) {
+.on("end", function() {
 	console.log("FILTERED:");
-	console.log(res.actual());
+	console.log(this.results.actual());
 })
 .start([1,2,3,4,5,6,7,8,9]);
 
@@ -249,17 +249,17 @@ var evens = herder
 //
 var somePet = herder
 .parallel()
-.actor(function(it, idx, res, next) {
+.actor(function(it, idx, next) {
 	if(this.context() === it) {
 		this.stop();
-		return this.emit("end", res, idx);
+		return this.emit("end", idx);
 	}
 	next();
 })
 
 somePet
 .context("cat")
-.on("end", function(res, idx) {
+.on("end", function(idx) {
 	console.log("SOME PET");
 	console.log(idx);
 })
@@ -268,7 +268,7 @@ somePet
 somePet
 .context("turtle")
 .off("end")
-.on("end", function(res, idx) {
+.on("end", function(idx) {
 	console.log("SOME PET 2");
 	console.log(idx);
 })
@@ -279,12 +279,12 @@ somePet
 //
 var every = herder
 .parallel()
-.actor(function(it, idx, res, next) {
-	res.actual(it === this.context() ? idx : void 0);
+.actor(function(it, idx, next) {
+	this.results.actual(it === this.context() ? idx : void 0);
 	next();
 })
-.on("end", function(res) {
-	this.emit("result", res.actual().length === res.length());
+.on("end", function() {
+	this.emit("result", this.results.actual().length === this.buffer.length());
 })
 
 every
@@ -303,7 +303,7 @@ every
 //
 var needleFinder = herder
 .parallel()
-.actor(function(it, idx, res, next) {
+.actor(function(it, idx, next) {
 	if(it === "needle") {
 		console.log("FOUND NEEDLE at index: " + idx);
 		return this.stop();
@@ -331,7 +331,7 @@ herder
 	{ name: 'innerHTML', 	from: ['open','inner','closed'], 			to: 'inner'}
 ]})
 .actor(
-	function(it, idx, res, next) {
+	function(it, idx, next) {
 		if(it.match(/^<\/[^>]+>$/)) {
 			this.state.closeTag();
 		} else if(it.match(/^<[^>]+>$/)) {
@@ -342,9 +342,9 @@ herder
 		next(this.state.current);
 	}
 )
-.on("end", function(res) {
+.on("end", function() {
 	console.log("HTML STATE END");
-	console.log(res);
+	console.log(this.results);
 })
 .on("openTag", function() {
 	console.log("OPEN TAG EVENT....");
@@ -395,7 +395,7 @@ var login = herder
 .on("finished", function(ev, from, to, creds) {
 	console.log("FINISHED......");
 })
-.start(function(it, idx, res, next) {
+.start(function(it, idx, next) {
 	this.state.candidate({
 		username	: "bobloblaw",
 		password	: "safe!"
@@ -407,24 +407,23 @@ var login = herder
 //	TIMEOUT
 //
 herder
-.parallel()
-.timeout(1)
-.on("timeout", function() {
-	console.log("TIMED OUT");
-	console.log(arguments);
+.serial()
+.timeout(2000)
+.on("timeout", function(idx) {
+	console.log("TIMED OUT AT INDEX: " + idx);
 })
-.actor(function(it, idx, res, next) {
+.actor(function(it, idx, next) {
 	setTimeout(next, 1000);
 })
-.start();
+.start([1,2,3,4,5,6,7,8,9,10]);
 
 //
 //	Hot push to live buffer
 //
 map
-.actor(function(it, idx, res, next) {
-	if(res.length() < 20) {
-		res.push(parseInt(Math.random() * 1000));
+.actor(function(it, idx, next) {
+	if(this.buffer.length() < 20) {
+		this.buffer.push(parseInt(Math.random() * 1000));
 	}	
 	next(it * 2);
 })
@@ -432,34 +431,99 @@ map
 
 herder
 .parallel()
-.timeout(1)
-.on("timeout", function() {
-	console.log("TIMED OUT");
-	console.log(arguments);
-})
-.actor(function(it, idx, res, next) {
-	setTimeout(next, 1000);
-})
-.start();
-
-herder
-.parallel()
-.actor(function(it, idx, res, next) {
-	res.error("Boo");
+.actor(function(it, idx, next) {
+	this.results.error("Boo");
 	next();
 })
-.on("error", function(res, idx) {
+.on("error", function(idx) {
 	console.log("!!!!!!!!!ERRORED!!!!!!!!!");
-	console.log(res.error());
+	console.log(this.results.error());
 })
 .start()
 
 
+//	Serial makes more sense here.
+//
 herder
-.parallel(function(it, idx, res, next) {
-	console.log("HIHIIHIIHHHIIHIIIIHIHIHIIHIIHIHIHI");
-	//res.push(it);
+.serial(function(it, idx, next) {
+	console.log("ADDING NEW ITERATIONS " + idx);
+	var ctx = this.context();
+	++ctx;
+	if(ctx === 10) {
+		this.stop();
+	}
+	ctx > 0 && this.context(ctx) && this.buffer.push(it);
+	next()
 })
-.timeout(10, true)
+.on("timeout", function() {
+	console.log("<<<<--------------------- timeout");
+})
+.on("stop", function() {
+	console.log("<<<<--------------------- stopped");
+})
+.context(0)
+//.timeout(1)
 .start()
+
+var machineA = herder
+.parallel()
+.actor(function(it, idx, next) {
+	console.log("machine A got: " + it);
+	next(it * 10);
+})
+
+var machineB = herder
+.parallel()
+.actor(function(it, idx, next) {
+	console.log("machine B got: " + it);
+	next(it * 100);
+})
+
+var machineC = herder
+.parallel()
+.actor(function(it, idx, next) {
+	console.log("machine C got: " + it);
+	next(it * 1000);
+})
+
+var machineRunner = herder
+.parallel()
+.on("end", function(idx) {
+	console.log("RUNNING MACHINES");
+	var s = this.results.stack();
+	var i;
+	while(i = s.shift()) {
+		console.log(i.results.stack())
+	}
+})
+.actor(function(it, idx, next) {
+	next(it.start(this.context().shift()));
+});
+
+
+machineRunner
+.context([
+	[1,2,3],
+	[4,5,6],
+	[7,8,9]
+])
+.start(
+	machineA, 
+	machineB, 
+	machineC
+)
+
+machineRunner
+.context([
+	[23,55,88]
+])
+.start(machineC)
+
+machineRunner
+.start(
+	machineA,
+	machineB,
+	machineC
+)
+
 

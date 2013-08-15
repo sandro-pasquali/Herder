@@ -189,7 +189,7 @@ The instruction list can be pushed onto during iteration, such that an initial l
 	
 	//	[ 2, 4, 6, 8, 10, ..., n[20] ]
 	
-A total running time (milliseconds) can be set. Here we set it for one(1) millisecond:
+A total running time (milliseconds) can be set. Here we set it for one(1) millisecond. As our actor will consume at least 1000 milliseconds, this machine will time out:
 
 	herder
 	.parallel()
@@ -241,7 +241,7 @@ Errors can be flagged:
 	
 Note that you are passing an error state on to the next iteration, at which point it will be handled. If this is an exception, you should `throw` instead.
 
-Machines can be given an operating context, which can be any type of value:
+Machines can be given an operating context, which can be any type of value. Here we create a typical `every` routine for arrays of data. 
 
 	var every = herder
 	.parallel()
@@ -267,6 +267,18 @@ Machines can be given an operating context, which can be any type of value:
 	.start([2,2,3,2,2])
 	
 	//	false
+
+Note that in the second `every` we re-used the machine `context` set previously.
+
+Asynchronicity is expected at the functional level -- your actors (functions) are making asynchronous calls. However, sometimes you will want a long operation (such as iterating a very long list) to be non blocking, especially in a NodeJS environment. You can force the machine to yield to the javascript execution context's event loop *on each iteration* with `async`:
+
+	.async()
+	
+The cases where this would be necessary are very rare: you probably want function-level async.
+
+<a id="StateMachine"></a>
+State Machine
+-------------
 
 To create a state machine, pass a definition object to `addState` (see [StateMachine](#StateMachine)):
 
@@ -393,18 +405,10 @@ State machines naturally throw on undefined transitions:
 		});
 	}, 100);
 
-The library expects asynchronicity to exist at the functional level -- your actors are making asynchronous calls. However, sometimes you will want a long operation (such as iterating a very long list) to be non blocking, especially in a NodeJS environment. You can force the machine to yield to the javascript execution context's event loop *on each iteration* with `async`:
-
-	.async()
-	
-The cases where this would be necessary are very rare: you probably want function-level async.
-
 <a id="ResultObject"></a>
 Result Object
 -------------
 
-<a id="StateMachine"></a>
-State Machine
--------------
+
 
 

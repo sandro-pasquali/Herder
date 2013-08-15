@@ -193,11 +193,15 @@ buildEvent: function(name, map) {
 var ARR_SLICE = Array.prototype.slice;
 
 var PROC_ARGS = function(args) {
-	var _args = ARR_SLICE.call(args);
-	if(typeof _args[0] === "function") {
-		return _args;
+	var a0 = args[0]
+	if(Object.prototype.toString.call(args) === '[object Array]') {
+		return args;
+	}
+	if((typeof a0 === "function") || (a0 instanceof Builder)) {
+		return ARR_SLICE.call(args);
 	} 
-	return args[0] || [];
+	
+	return a0 || [];
 };
 
 function Builder(buffer, iterator) {
@@ -206,7 +210,7 @@ function Builder(buffer, iterator) {
 		//	A previously terminated herder can be restarted.
 		//
 		this._stop = null;
-		
+
 		buffer = PROC_ARGS(newArgs ? arguments : buffer);
 
 		var $this 	= this;
@@ -217,15 +221,16 @@ function Builder(buffer, iterator) {
 		//	1. If next buffer item is a function, execute it.
 		//	2. If not a function, #next(value of buffer item)
 		//
-		var ops	= this._actor = this._actor || [function(it, idx, res, next) {
+		var ops	= this._actor = this._actor || [function(it, idx, next) {
 			if(typeof it === "function") {
-				return it.call($this, it, idx, res, next);
+				return it.call($this, it, idx, next);
 			}
 			next(it);
 		}];
 		
 		var	results	= {
 			buffer	: buffer,
+			readable: 0,
 			last	: null,
 			grouped	: [],
 			actual	: [],
@@ -271,15 +276,26 @@ function Builder(buffer, iterator) {
 							end		: $local.endMs,
 							total	: $local.endMs - $local.startMs
 						};
-					},
-					push : function(v) {
-						v = typeof v !== "string" ? [v] : v;
-						$local.buffer = $local.buffer.concat(v);
-					},
-					length : function() {
-						return $local.buffer.length;
 					}
 				};
+			}
+		};
+		
+		//	Allow the machine to access results
+		//
+		$this.results = results.api();
+		
+		//	Buffer interface
+		//
+		$this.buffer = {
+			push : function(v) {
+				v = PROC_ARGS(arguments);
+				if(v.length) {
+					results.buffer = results.buffer.concat(v);
+				}
+			},
+			length : function() {
+				return results.buffer.length;
 			}
 		};
 		
@@ -291,20 +307,26 @@ function Builder(buffer, iterator) {
 		
 			res.endMs = new Date().getTime();
 			
-			$this._timeout 
-			&& ((res.endMs - res.startMs) > $this._timeout) 
-			&& $this.emit("timeout", res.api(), idx) 
-			&& $this._timeoutStop 
-			&& $this.stop();
-
-			$this.emit("data", res.api(), idx);
+			if($this._timeout && ((res.endMs - res.startMs) > $this._timeout)) { 
+				
+				$this.emit("timeout", idx);
+				$this.stop();
+			}
 			
-			res.errored 
-			&& $this.emit("error", res.api(), idx);
+			if($this._stop) {
+				++$this._stop === 2 && $this.emit("stop", idx);
+				return false;
+			}
+
+			res.readable && $this.emit("data", idx);
+			
+			res.errored && $this.emit("error", idx);
 			
 			$this.state 
 			&& $this.state.isFinished() 
-			&& $this.emit("finished", res.api(), idx);
+			&& $this.emit("finished", idx);
+			
+			return true;
 		};
 		
 		var forceAsync = function(f, a) {
@@ -314,12 +336,12 @@ function Builder(buffer, iterator) {
 		};
 
 		(runner = function(runs) {
-			if(runs === ops.length) {
-				return $this.emit("end", results.api());
+			if(runs >= ops.length) {
+				return $this.emit("end");
 			}
 	
 			results.grouped[runs] = [];
-
+			
 			iterator($this, results, runner, runs, ops[runs], reportEvents, forceAsync);
 		})(0);
 		
@@ -379,9 +401,8 @@ Builder.prototype = new function() {
 		return this._context;
 	};
 	
-	this.timeout = function(ms, stop) {
+	this.timeout = function(ms) {
 		this._timeout = ms;
-		this._timeoutStop = stop;
 		return this;
 	};
 
@@ -431,22 +452,20 @@ var facade = {
 		return new Builder(arguments, function($this, results, runner, runs, fn, reportEvents, forceAsync) {
 			var iter;
 			(iter = function(idx) {
-				fn.call($this, results.buffer[idx], idx, results.api(), function(res) {
-					if($this._stop) {
-						++$this._stop === 2 && $this.emit("stop", results.api(), idx);
-						return;
-					}
+				fn.call($this, results.buffer[idx], idx, function(res) {
 					results.last = res;
-					results.grouped[runs].push(res);
-					res !== void 0 && results.actual.push(res);
-					
-					reportEvents(idx, results);
-
-					++idx < results.buffer.length 
-					? $this._async 
-						? forceAsync(iter, idx) 
-						: iter(idx) 
-					: runner(++runs);
+					if(reportEvents(idx, results)) {
+						results.grouped[runs].push(res);
+						res !== void 0 && results.actual.push(res);
+						
+						results.readable++;
+	
+						++idx < results.buffer.length 
+						? $this._async 
+							? forceAsync(iter, idx) 
+							: iter(idx) 
+						: runner(++runs);
+					}
 				});
 			})(0);	
 		});
@@ -457,21 +476,18 @@ var facade = {
 			var cnt = 0;
 			var iter;
 			(iter = function(idx) {
-				fn.call($this, results.buffer[idx], idx, results.api(), function(res) {			
-					if($this._stop) {
-						++$this._stop === 2 && $this.emit("stop", results.api(), idx);
-						return;
-					}
-
+				fn.call($this, results.buffer[idx], idx, function(res) {		
 					results.last = res;
-					results.grouped[runs][idx] = res;
-					if(res !== void 0) {
-						results.actual[idx] = res;
+					if(reportEvents(idx, results)) {
+						results.grouped[runs][idx] = res;
+						if(res !== void 0) {
+							results.actual[idx] = res;
+						}
+						
+						results.readable++;
+						
+						++cnt === results.buffer.length && runner(++runs);
 					}
-					
-					reportEvents(idx, results);
-					
-					++cnt === results.buffer.length && runner(++runs);
 				});
 				(idx +1) < results.buffer.length && ($this._async ? forceAsync(iter, idx +1) : iter(idx +1));
 			})(0);
