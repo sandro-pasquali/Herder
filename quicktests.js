@@ -23,7 +23,7 @@ herder
 .on("data", function() {
 	console.log("serial data last: " + this.results.last()); 
 })
-.on("end", function() {
+.on("result", function() {
 	console.log("FULL SERIAL RESULT OBJECT");
 	console.log(this.results.stack());
 })
@@ -51,7 +51,7 @@ herder
 .on("data", function(idx) {
 	console.log("parallel data idx: " + idx + " last: " + this.results.last());
 })
-.on("end", function() {
+.on("result", function() {
 	console.log("FULL PARALLEL RESULT OBJECT");
 	console.log(this.results.stack());
 })
@@ -109,7 +109,7 @@ herder
 		next("actor3 got: " + it);
 	}
 )
-.on("end", function() {
+.on("result", function() {
 	console.log("MULTISTART RESULTS");
 	console.log(this.results.stack());
 })
@@ -147,7 +147,7 @@ herder
 	console.log("PARALLEL EXEC NEXT:");
 	console.log(this.results.last());
 })
-.on("end", function() {
+.on("result", function() {
 	console.log("PARALLEL EXEC FINAL:");
 	console.log(this.results.stack());
 })
@@ -162,7 +162,7 @@ var reducer = herder
 .actor(function(it, idx, next) {
 	next(this.results.last() ? this.results.last() + it : it);
 })
-.on("end", function() {
+.on("result", function() {
 	console.log("REDUCED");
 	console.log(this.results.last());
 });
@@ -186,7 +186,7 @@ var map = herder
 .on("stop", function() {
 	console.log("MAP TERMINATED...");
 })
-.on("end", function() {
+.on("result", function() {
 	console.log("MAP");
 	console.log(this.results.stack());
 });
@@ -219,9 +219,9 @@ map
 var eventedMap = herder
 .parallel()
 .on("data", function(idx) {
-	this.results.actual(idx, Math.pow(2, this.results.last()));
+	this.results.actual(10 * this.results.last());
 })
-.on("end", function() {
+.on("result", function() {
 	console.log("PURELY EVENTED MAP");
 	console.log(this.results.actual());
 });
@@ -238,11 +238,12 @@ var evens = herder
 	it%2 === 0 && this.results.actual(it);
 	next();
 })
-.on("end", function() {
+.on("result", function() {
 	console.log("FILTERED:");
 	console.log(this.results.actual());
 })
-.start([1,2,3,4,5,6,7,8,9]);
+.start([1,2,3,4,5,6,7,8,9])
+.start([234,1,777,4,6,8,2001])
 
 //	
 //	SOME
@@ -252,14 +253,14 @@ var somePet = herder
 .actor(function(it, idx, next) {
 	if(this.context() === it) {
 		this.stop();
-		return this.emit("end", idx);
+		return this.emit("result", idx);
 	}
 	next();
 })
 
 somePet
 .context("cat")
-.on("end", function(idx) {
+.on("result", function(idx) {
 	console.log("SOME PET");
 	console.log(idx);
 })
@@ -267,8 +268,8 @@ somePet
 
 somePet
 .context("turtle")
-.off("end")
-.on("end", function(idx) {
+.off("result")
+.on("result", function(idx) {
 	console.log("SOME PET 2");
 	console.log(idx);
 })
@@ -280,23 +281,42 @@ somePet
 var every = herder
 .parallel()
 .actor(function(it, idx, next) {
-	this.results.actual(it === this.context() ? idx : void 0);
+	it !== this.context() && this.stop();
 	next();
-})
-.on("end", function() {
-	this.emit("result", this.results.actual().length === this.buffer.length());
 })
 
 every
 .context(2)
+.on("stop", function(idx) {
+	console.log("EVERY: false");
+})
 .on("result", function(bool) {
-	console.log("EVERY");
-	console.log(bool);
+	console.log("EVERY: true");
 })
 .start([2,2,2,2])
 
 every
 .start([2,2,3,2,2])
+
+var eventedEvery = herder
+.parallel()
+.on("data", function() {
+	this.results.last() !== this.context() && this.stop();
+})
+.on("stop", function(idx) {
+	console.log("EVENTED EVERY: false");
+})
+.on("result", function(bool) {
+	console.log("EVENTED EVERY: true");
+})
+
+eventedEvery
+
+.context("yes")
+.start(["yes","yes","yes","yes","yes","no"])
+
+.context("yes")
+.start(["yes","yes","yes","yes","yes","yes"])
 
 //
 //	FIND
@@ -342,7 +362,7 @@ herder
 		next(this.state.current);
 	}
 )
-.on("end", function() {
+.on("result", function() {
 	console.log("HTML STATE END");
 	console.log(this.results);
 })
@@ -378,7 +398,7 @@ var login = herder
 })
 .on("accepted", function(ev, from, to, creds) {
 	var serverLoad = 13;
-	if(serverLoad < 20) {
+	if(serverLoad < 2) {
 		return this.state.confirmed(creds);
 	}
 	this.state.denied(creds);
@@ -391,6 +411,7 @@ var login = herder
 .on("confirmed", function(ev, from, to, creds) {
 	console.log("CONFIRMED");
 	console.log(creds);
+	console.log(this)
 })
 .on("finished", function(ev, from, to, creds) {
 	console.log("FINISHED......");
@@ -488,7 +509,7 @@ var machineC = herder
 
 var machineRunner = herder
 .parallel()
-.on("end", function(idx) {
+.on("result", function(idx) {
 	console.log("RUNNING MACHINES");
 	var s = this.results.stack();
 	var i;

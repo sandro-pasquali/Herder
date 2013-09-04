@@ -207,21 +207,21 @@ var PROC_ARGS = function(args) {
 function Builder(buffer, iterator) {
 	this.start = function(newArgs) {
 	
-		//	A previously terminated herder can be restarted.
-		//
-		this._stop = null;
-
 		buffer = PROC_ARGS(newArgs ? arguments : buffer);
 
 		var $this 	= this;
 		var runner;
+		
+		//	A previously terminated herder can be restarted.
+		//
+		$this._stop = null;
 		
 		//	Ensure that there is at least one actor to process #buffer.
 		//	If no actor, assign general function to handle two cases:
 		//	1. If next buffer item is a function, execute it.
 		//	2. If not a function, #next(value of buffer item)
 		//
-		var ops	= this._actor = this._actor || [function(it, idx, next) {
+		var ops	= $this._actor = $this._actor || [function(it, idx, next) {
 			if(typeof it === "function") {
 				return it.call($this, it, idx, next);
 			}
@@ -264,7 +264,8 @@ function Builder(buffer, iterator) {
 					actual : function(idx, v) {
 						if(idx === void 0) {
 							return $local.actual;
-						} else if(!v) {
+						} 
+						if(v === void 0) {
 							return $local.actual.push(idx);
 						}
 						
@@ -312,15 +313,15 @@ function Builder(buffer, iterator) {
 				$this.emit("timeout", idx);
 				$this.stop();
 			}
+							
+			$this.emit("data", idx);
 			
 			if($this._stop) {
 				++$this._stop === 2 && $this.emit("stop", idx);
 				return false;
+			} else {
+				res.errored && $this.emit("error", idx);			
 			}
-
-			res.readable && $this.emit("data", idx);
-			
-			res.errored && $this.emit("error", idx);
 			
 			$this.state 
 			&& $this.state.isFinished() 
@@ -337,7 +338,7 @@ function Builder(buffer, iterator) {
 
 		(runner = function(runs) {
 			if(runs >= ops.length) {
-				return $this.emit("end");
+				return $this.emit("result", runs);
 			}
 	
 			results.grouped[runs] = [];
@@ -425,6 +426,38 @@ Builder.prototype = new function() {
 		return this;
 	};
 	
+	this.link = function(route, arg) {
+
+		var i = 0;
+		var $this = this;
+		
+		$this._links = $this._links || {}
+		
+		var r = $this._links[route];
+
+		if(typeof arg === "function") {
+			$this._links[route] = r || [];
+			r.push(function() {
+				arg.apply($this, ARR_SLICE.call(arguments));
+			});
+		} else {
+			for(; i < r.length; i++) {
+				r[i](arg);
+			}
+		}
+		
+		return $this;
+	};
+	
+	this.unlink = function(route) {
+		if(!route) {
+			this._links = {};
+		} else {
+			delete this._links[route];
+		}
+		return this;
+	};
+	
 	this.emit = function(event) {
 		var args = ARR_SLICE.call(arguments, 1);
 		if(!this._events || !this._events[event]) {
@@ -442,7 +475,9 @@ Builder.prototype = new function() {
 	};
 	
 	this.stop = function() {
-		this._stop = 1;
+		if(!this._stop) {
+			this._stop = 1;
+		}
 		return this;
 	};
 };
@@ -456,10 +491,6 @@ var facade = {
 					results.last = res;
 					if(reportEvents(idx, results)) {
 						results.grouped[runs].push(res);
-						res !== void 0 && results.actual.push(res);
-						
-						results.readable++;
-	
 						++idx < results.buffer.length 
 						? $this._async 
 							? forceAsync(iter, idx) 
@@ -476,16 +507,11 @@ var facade = {
 			var cnt = 0;
 			var iter;
 			(iter = function(idx) {
-				fn.call($this, results.buffer[idx], idx, function(res) {		
+				fn.call($this, results.buffer[idx], idx, function(res) {	
 					results.last = res;
+					results.readable++;
 					if(reportEvents(idx, results)) {
 						results.grouped[runs][idx] = res;
-						if(res !== void 0) {
-							results.actual[idx] = res;
-						}
-						
-						results.readable++;
-						
 						++cnt === results.buffer.length && runner(++runs);
 					}
 				});
