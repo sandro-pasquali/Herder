@@ -1,29 +1,40 @@
 {
-	"name": "herder",
-	"description": "A functional programming kit for building evented execution engines that can tame async calls, with optional state machine.",
-	"version": "0.5.0",
-	"author": {
-		"name": "Sandro Pasquali",
-		"email": "spasquali@gmail.com",
-		"url": "http://www.sandro.mobi"
-	},
-	"repository": {
-		"type"  : "git",
-		"url"   : "https://github.com/sandro-pasquali/herder"
-	},
-	"bugs": {
-		"url": "https://github.com/sandro-pasquali/herder/issues"
-	},
-	"engines": {
-		"node": ">= 0.10.0"
-	},
-	"licenses": [{
-		"type": "MIT",
-		"url": "http://opensource.org/licenses/MIT"
-	}],
-	"keywords": [
-		"async",
-		"state machine",
-		"nodejs"
-	]
+  "name": "herder",
+  "description": "A functional programming kit for building evented execution engines that can tame async calls, with optional state machine.",
+  "version": "0.5.0",
+  "author": {
+    "name": "Sandro Pasquali",
+    "email": "spasquali@gmail.com",
+    "url": "http://www.sandro.mobi"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sandro-pasquali/herder"
+  },
+  "bugs": {
+    "url": "https://github.com/sandro-pasquali/herder/issues"
+  },
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://opensource.org/licenses/MIT"
+    }
+  ],
+  "keywords": [
+    "async",
+    "state machine",
+    "nodejs"
+  ],
+  "readme": "Herder\n------\n\nThis library allows you to create machines that process a list of instructions using an optional list of processors (called \"actors\"). \n\nActors receive the current result set. Actors can be invoked serially or in parallel. \n\nThe machines are evented, such that a `data` event is emitted on each iteration through the instruction list, to which is made available the current result set. When the machine is finished it emits `end`.  \n\nAdditionally, the machine can be transformed into a true state machine, where state change events are programmable.\n\nImportantly, asynchronous execution is supported, such that an actor must yield (with `next`) in order for the iteration to continue.\n\nConsider the following:\n\n\therder\n\t.serial([1,2,3,4,5])\n\t.actor(\n\t\tfunction(it, idx, res, next) {\n\t\t\tsetTimeout(function() {\n\t\t\t\tnext(it * 2);\n\t\t\t}, (Math.random() * 1000));\n\t\t}\n\t)\n\t.on(\"data\", function(data) {\n\t\tconsole.log(data.last()); \n\t})\n\t.on(\"end\", function(result) {\n\t\tconsole.log(result.stack());\n\t})\n\t.start();\n\t\n\t//\t2\n\t//\t4\n\t//\t6\n\t//\t8\n\t//\t10\n\t//\t[ 2, 4, 6, 8, 10 ]\n\nHerder may be used as a straightforward async method taming tool:\n\n\therder\n\t.serial(\n\t\tfunction(idx, res, next) {\n\t\t\tsetTimeout(function() {\n\t\t\t\tconsole.log(\"serial A\");\n\t\t\t\tnext(1);\n\t\t\t}, Math.random() * 100);\n\t\t},\n\t\tfunction(idx, res, next) {\n\t\t\tsetTimeout(function() {\n\t\t\t\tconsole.log(\"serial B\");\n\t\t\t\tnext(1);\n\t\t\t}, Math.random() * 100);\n\t\t},\n\t\tfunction(idx, res, next) {\n\t\t\tsetTimeout(function() {\n\t\t\t\tconsole.log(\"serial C\");\n\t\t\t\tnext(1);\n\t\t\t}, Math.random() * 100);\n\t\t}\n\t)\n\t.start()\n\t\n\t//\tA\n\t//\tB\n\t//\tC\n\t\n\therder\n\t.parallel(\n\t\tfunction(idx, res, next) {\n\t\t\tsetTimeout(function() {\n\t\t\t\tconsole.log(\"par A\");\n\t\t\t\tnext(1);\n\t\t\t}, Math.random() * 100);\n\t\t},\n\t\tfunction(idx, res, next) {\n\t\t\tsetTimeout(function() {\n\t\t\t\tconsole.log(\"par B\");\n\t\t\t\tnext(1);\n\t\t\t}, Math.random() * 100);\n\t\t},\n\t\tfunction(idx, res, next) {\n\t\t\tsetTimeout(function() {\n\t\t\t\tconsole.log(\"par C\");\n\t\t\t\tnext(1);\n\t\t\t}, Math.random() * 100);\n\t\t}\n\t)\n\t.on(\"end\", function() {\n\t\tconsole.log(\"TAMED PARALLEL IS DONE\");\n\t})\n\t.start()\n\t\n\t//\tB\n\t//\tC\n\t//\tA (or other...)\n\t//\tTAMED PARALLEL IS DONE\n\t\nA `map` method is easy to create\n\n\tvar map = herder\n\t.parallel()\n\t.actor(function(it, idx, res, next) {\n\t\tnext(it*2);\n\t})\n\t.on(\"end\", function(res) {\n\t\tconsole.log(res.stack());\n\t})\n\t.start([1,2,3,4,5])\n\t\n\t//\t[ 2, 4, 6, 8, 10 ]\n\nAs is a `reduce` method:\n\n\tvar reduce = herder\n\t.serial()\n\t.actor(function(it, idx, res, next) {\n\t\tnext(res.last() ? res.last() + it : it);\n\t})\n\t.on(\"end\", function(res) {\n\t\tconsole.log(res.last());\n\t});\n\t\n\treduce\n\t.start([10,10,10]);\n\t\n\t//\t30\n\t\n\treduce\n\t.start([\"a\",\"b\",\"c\"]);\n\t\n\t//\tabc\n\t\nOr a `filter` (see [ResultObject](#ResultObject)):\n\n\tvar evens = herder\n\t.parallel()\n\t.actor(function(it, idx, res, next) {\n\t\tit%2 === 0 && res.actual(it);\n\t\tnext();\n\t})\n\t.on(\"end\", function(res) {\n\t\tconsole.log(\"FILTERED:\");\n\t\tconsole.log(res.actual());\n\t})\n\t.start([1,2,3,4,5,6,7,8,9]);\n\t\n\t//\t[ 2, 4, 6, 8 ]\n\nMachines can be re-used, redefined, or take a new list:\n\n\tmap\n\t.actor(function(it, idx, res, next) {\n\t\tnext(it * 2);\n\t})\n\t.start([1,2,3,4,5]);\n\t// [ 2, 4, 6, 8, 10 ]\n\t\n\tmap\n\t.start([10,20,30,40,50]);\n\t\n\t// [ 20, 40, 60, 80, 100 ]\n\nMachine events have access to the result object, so purely evented machines are possible:\n\n\tvar eventedMap = herder\n\t.parallel()\n\t.on(\"data\", function(res, idx) {\n\t\tres.actual(idx, Math.pow(2, res.last()));\n\t})\n\t.on(\"end\", function(res) {\n\t\tconsole.log(\"PURELY EVENTED MAP\");\n\t\tconsole.log(res.actual());\n\t});\n\t\n\teventedMap.start([1,2,3,4,5]);\n\nThe instruction list can be pushed onto during iteration, such that an initial list can be dynamically augmented:\n\n\tmap\n\t.actor(function(it, idx, res, next) {\n\t\tif(res.length() < 20) {\n\t\t\tres.push(parseInt(Math.random() * 1000));\n\t\t}\t\n\t\tnext(it * 2);\n\t})\n\t.start([1,2,3,4,5]);\n\t\n\t//\t[ 2, 4, 6, 8, 10, ..., n[20] ]\n\t\nA total running time (milliseconds) can be set. Here we set it for one(1) millisecond. As our actor will consume at least 1000 milliseconds, this machine will time out:\n\n\therder\n\t.parallel()\n\t.timeout(1)\n\t.on(\"timeout\", function() {\n\t\tconsole.log(\"TIMED OUT\");\n\t})\n\t.actor(function(it, idx, res, next) {\n\t\tsetTimeout(next, 1000);\n\t})\n\t.start();\n\nThe machine can also be stopped, such as when a search is complete:\n\n\tvar needleFinder = herder\n\t.parallel()\n\t.actor(function(it, idx, res, next) {\n\t\tif(it === \"needle\") {\n\t\t\tconsole.log(\"FOUND NEEDLE at index: \" + idx);\n\t\t\treturn this.stop();\n\t\t}\n\t\tnext();\n\t});\n\t\n\tneedleFinder\n\t.start([\"chicken\",\"egg\",\"needle\",\"haystack\"]);\n\t\n\t//\tFOUND NEEDLE at index: 2\n\t\n\tneedleFinder\n\t.start([\"jack\",\"needle\",\"hill\",\"jill\"]);\n\t\n\t//\tFOUND NEEDLE at index: 1\n\t\nNote that a stopped machine can always be restarted with `start`.\n\nErrors can be flagged:\n\n\therder\n\t.parallel()\n\t.actor(function(it, idx, res, next) {\n\t\tnext(res.error(\"Boo\"));\n\t})\n\t.on(\"error\", function(res, idx) {\n\t\tconsole.log(\"!!!!!!!!!ERRORED!!!!!!!!!\");\n\t\tconsole.log(res.error());\n\t})\n\t.start()\n\t\nNote that you are passing an error state on to the next iteration, at which point it will be handled. If this is an exception, you should `throw` instead.\n\nMachines can be given an operating context, which can be any type of value. Here we create a typical `every` routine for arrays of data. \n\n\tvar every = herder\n\t.parallel()\n\t.actor(function(it, idx, res, next) {\n\t\tres.actual(it === this.context() ? idx : void 0);\n\t\tnext();\n\t})\n\t.on(\"end\", function(res) {\n\t\tthis.emit(\"result\", res.actual().length === res.length());\n\t})\n\t\n\tevery\n\t.context(2)\n\t.on(\"result\", function(bool) {\n\t\tconsole.log(\"EVERY\");\n\t\tconsole.log(bool);\n\t})\n\t.start([2,2,2,2])\n\t\n\t//\ttrue\n\t\n\tevery\n\t.start([2,2,3,2,2])\n\t\n\t//\tfalse\n\nNote that in the second `every` we re-used the machine `context` set previously.\n\nAsynchronicity is expected at the functional level -- your actors (functions) are making asynchronous calls. However, sometimes you will want a long operation (such as iterating a very long list) to be non blocking, especially in a NodeJS environment. You can force the machine to yield to the javascript execution context's event loop *on each iteration* with `async`:\n\n\t.async()\n\t\nThe cases where this would be necessary are very rare: you probably want function-level async.\n\n<a id=\"StateMachine\"></a>\nState Machine\n-------------\n\nTo create a state machine, pass a definition object to `addState` (see [StateMachine](#StateMachine)):\n\n\therder\n\t.serial()\n\t.addState({\n\t  initial: 'none',\n\t  events: [\n\t\t{ name: 'openTag',  \tfrom: ['none','inner','open','closed'],  \tto: 'open' },\n\t\t{ name: 'closeTag', \tfrom: ['inner','closed','open'], \t\t\tto: 'closed'},\n\t\t{ name: 'innerHTML', \tfrom: ['open','inner','closed'], \t\t\tto: 'inner'}\n\t]})\n\t.actor(\n\t\tfunction(it, idx, res, next) {\n\t\t\tif(it.match(/^<\\/[^>]+>$/)) {\n\t\t\t\tthis.state.closeTag();\n\t\t\t} else if(it.match(/^<[^>]+>$/)) {\n\t\t\t\tthis.state.openTag();\n\t\t\t} else {\n\t\t\t\tthis.state.innerHTML();\n\t\t\t}\n\t\t\tnext(this.state.current);\n\t\t}\n\t)\n\t.on(\"end\", function(res) {\n\t\tconsole.log(\"HTML STATE END\");\n\t})\n\t.on(\"openTag\", function() {\n\t\tconsole.log(\"OPEN_TAG EVENT....\");\n\t})\n\t.on(\"enteropen\", function() {\n\t\tconsole.log(\"ENTER OPEN STATE...\");\n\t})\n\t.on(\"leaveopen\", function() {\n\t\tconsole.log(\"LEAVE OPEN STATE...\");\n\t})\n\t.start(['<html>','<div>','hello','</div>','</html>']);\n\t\n\t//\tENTER OPEN STATE...\n\t//\tOPEN_TAG EVENT....\n\t//\tOPEN_TAG EVENT....\n\t//\tLEAVE OPEN STATE...\n\t//\tHTML STATE END\n\nAs you can see, multiple `from` states are possible, sent as an array.\n\nIn addition to setting an initial state, one can also set a terminal state:\n\n\therder\n\t.serial()\n\t.addState({\n\t  initial\t: 'none',\n\t  terminal\t: 'done',\n\t  events: [\n\t\t{ name: 'myCompleteEvent',  \tfrom: 'none',  \tto: 'done' }\n\t]})\n\t.actor(\n\t\tfunction() {\n\t\t\tthis.state.myCompleteEvent();\n\t\t}\n\t)\n\t.on(\"myCompleteEvent\", function(res) {\n\t\tconsole.log(\"COMPLETE EVENT\");\n\t})\n\t.on(\"enterdone\", function() {\n\t\tconsole.log(\"ENTER DONE STATE\");\n\t})\n\t.start();\n\nState machine control flow translates easily to evented models:\n\n\tvar login = herder\n\t.serial()\n\t.addState({\n\t  initial: 'none',\n\t  terminal: 'confirmed',\n\t  events: [\n\t\t{ name: 'candidate',\tfrom: 'none',\t\t\t\t\t\tto: 'candidate'},\n\t\t{ name: 'accepted', \tfrom: ['candidate', 'denied'],  \tto: 'accepted'},\n\t\t{ name: 'denied', \t\tfrom: ['candidate','accepted'], \tto: 'denied'},\n\t\t{ name: 'confirmed', \tfrom: 'accepted', \t\t\t\t\tto: 'confirmed'}\n\t]})\n\t.on(\"candidate\", function(ev, from, to, creds) {\n\t\tif(creds.password === \"safe!\") {\n\t\t\treturn this.state.accepted(creds);\n\t\t} \n\t\tthis.state.denied(creds);\n\t})\n\t.on(\"accepted\", function(ev, from, to, creds) {\n\t\tvar serverLoad = 13;\n\t\tif(serverLoad < 20) {\n\t\t\treturn this.state.confirmed(creds);\n\t\t}\n\t\tthis.state.denied(creds);\n\t})\n\t.on(\"denied\", function(ev, from, to, creds) {\n\t\tconsole.log(\"DENIED\");\n\t\tconsole.log(creds);\n\t\tthis.stop();\n\t})\n\t.on(\"confirmed\", function(ev, from, to, creds) {\n\t\tconsole.log(\"CONFIRMED\");\n\t\tconsole.log(creds);\n\t})\n\t.on(\"finished\", function(ev, from, to, creds) {\n\t\tconsole.log(\"FINISHED......\");\n\t})\n\t.start(function(idx, res, next) {\n\t\tthis.state.candidate({\n\t\t\tusername\t: \"bobloblaw\",\n\t\t\tpassword\t: \"safe!\"\n\t\t});\n\t\tnext();\n\t})\n\nState machines naturally throw on undefined transitions:\n\n\tsetTimeout(function() {\n\t\tlogin.start(function() {\n\t\t\t\n\t\t\tthis.state.accepted();\n\t\t\t\n\t\t\t// \tError: event accepted inappropriate in current state confirmed\n\t\t});\n\t}, 100);\n\n<a id=\"ResultObject\"></a>\nResult Object\n-------------\n\n\n\n\n",
+  "readmeFilename": "readme.md",
+  "_id": "herder@0.5.0",
+  "dist": {
+    "shasum": "bcb232728c10f6fb395840cf1d18db8bcbc5042d"
+  },
+  "_resolved": "git://github.com/sandro-pasquali/herder#c787b769a44ba7d98d419d7f16eb7569a16402ae",
+  "_from": "git://github.com/sandro-pasquali/herder",
+  "_fromGithub": true
 }

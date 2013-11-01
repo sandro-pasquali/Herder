@@ -483,7 +483,7 @@ herder
 	console.log("<<<<--------------------- stopped");
 })
 .context(0)
-//.timeout(1)
+.timeout(1)
 .start()
 
 var machineA = herder
