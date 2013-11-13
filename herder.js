@@ -197,24 +197,22 @@ var PROC_ARGS = function(args) {
 	if(Object.prototype.toString.call(args) === '[object Array]') {
 		return args;
 	}
-	if((typeof a0 === "function") || (a0 instanceof Builder)) {
+	if(typeof a0 === "function" || (a0 instanceof Builder)) {
 		return ARR_SLICE.call(args);
 	} 
 	
-	return a0 || [];
+	return a0 === void 0 ? [] : a0;
 };
 
 function Builder(buffer, iterator) {
 	this.start = function(newArgs) {
-	
+
 		buffer = PROC_ARGS(newArgs ? arguments : buffer);
 
-		var $this 	= this;
+		var $this = this;
 		var runner;
 		
-		//	A previously terminated herder can be restarted.
-		//
-		$this._stop = null;
+		$this._stop = undefined;
 		
 		//	Ensure that there is at least one actor to process #buffer.
 		//	If no actor, assign general function to handle two cases:
@@ -271,11 +269,13 @@ function Builder(buffer, iterator) {
 						
 						$local.actual[idx] = v;
 					},
-					runtime : function() {
+					stats : function() {
 						return {
-							start 	: $local.startMs,
-							end		: $local.endMs,
-							total	: $local.endMs - $local.startMs
+							startMs	: $local.startMs,
+							endMs	: $local.endMs,
+							runMs	: $local.endMs - $local.startMs,
+							timeout	: $this._timeout,
+							stopped	: $this._stop
 						};
 					}
 				};
@@ -290,8 +290,7 @@ function Builder(buffer, iterator) {
 		//
 		$this.buffer = {
 			push : function(v) {
-				v = PROC_ARGS(arguments);
-				if(v.length) {
+				if(v !== void 0) {
 					results.buffer = results.buffer.concat(v);
 				}
 			},
@@ -309,9 +308,8 @@ function Builder(buffer, iterator) {
 			res.endMs = new Date().getTime();
 			
 			if($this._timeout && ((res.endMs - res.startMs) > $this._timeout)) { 
-				
-				$this.emit("timeout", idx);
 				$this.stop();
+				$this.emit("timeout", idx);
 			}
 							
 			$this.emit("data", idx);
@@ -338,6 +336,7 @@ function Builder(buffer, iterator) {
 
 		(runner = function(runs) {
 			if(runs >= ops.length) {
+				$this.stop();
 				return $this.emit("result", runs);
 			}
 	

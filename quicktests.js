@@ -13,7 +13,6 @@ herder
 			next(it * 2);
 		}, (Math.random() * 1000));
 	},
-	
 	function(it, idx, next) {
 		setTimeout(function() {
 			next(it & 1);
@@ -28,6 +27,7 @@ herder
 	console.log(this.results.stack());
 })
 .start();
+
 
 //	
 //	PARALLEL ASYNC
@@ -55,116 +55,69 @@ herder
 	console.log("FULL PARALLEL RESULT OBJECT");
 	console.log(this.results.stack());
 })
+.start()
+
+//
+//	MAP
+//
+var mapper = herder
+.parallel([1,3,5,7,9])
+.on("result", function() {
+	console.log("MAP -> " + this.results.stack());
+	console.log(this.results.stats())
+})
+.actor(function(it, idx, next) {
+	next(it * 2);
+})
 .start();
 
-//
-//	TAMING CALLBACKS
-//
-herder
-.serial(
-	function(it, idx, next) {
-		console.log("A");
-		next(1);
-	},
-	function(it, idx, next) {
-		console.log("B");
-		next(1);
-	},
-	function(it, idx, next) {
-		console.log("C");
-		next(1);
-	},
-	function(it, idx, next) {
-		console.log("D");
-		next(1);
-	}
-)
+mapper.start([1,2,3,4,5]);
+mapper.start([10,20,30,40,50]);
 
-//	Force asynchronous behavior
-//	Observe difference when enabled or disabled
-//
-//.async()
 
-.start()
-
-.start(
-	function(it, idx, next) {
-		console.log("A1");
-		next(2);
-	},
-	function(it, idx, next) {
-		console.log("B1");
-		next(2);
-	}
-)
-
-.actor(
-	function(it, idx, next) {
-		next("actor1 got: " + it);
-	},
-	function(it, idx, next) {
-		next("actor2 got: " + it);
-	},
-	function(it, idx, next) {
-		next("actor3 got: " + it);
-	}
-)
-.on("result", function() {
-	console.log("MULTISTART RESULTS");
-	console.log(this.results.stack());
+mapper
+.actor(function(it, idx, next) {
+	next(it.toUpperCase());
 })
-.start(["fee","fi","fo","fum"])
+.start(["foo","bar"]);
 
-herder
-.parallel(
-	function(it, idx, next) {
-		setTimeout(function() {
-			next("first");
-		}, parseInt(Math.random() * 500));
-	},
-	function(it, idx, next) {
-		setTimeout(function() {
-			next("second");
-		}, parseInt(Math.random() * 500));
-	},
-	function(it, idx, next) {
-		setTimeout(function() {
-			next("third");
-		}, parseInt(Math.random() * 500));
-	},
-	function(it, idx, next) {
-		setTimeout(function() {
-			next("fourth");
-		}, parseInt(Math.random() * 500));
-	},
-	function(it, idx, next) {
-		setTimeout(function() {
-			next("fifth");
-		}, parseInt(Math.random() * 500));
-	}
-)
-.on("data", function() {
-	console.log("PARALLEL EXEC NEXT:");
-	console.log(this.results.last());
+mapper
+.on("error", function() {		
+	console.log("MAP ERRORED...");
+	console.log(this.results.error());
+	this.stop();
+})
+.on("stop", function() {
+	console.log("MAP STOPPED...");
+	console.log(this.results.stats());
+})
+.actor(function(it, idx, next) {
+	next(this.results.error("Something bad happened"));
+})
+.start([1,2])
+
+var eventedMap = herder
+.parallel()
+.on("data", function(idx) {
+	this.results.actual(10 * this.results.last());
 })
 .on("result", function() {
-	console.log("PARALLEL EXEC FINAL:");
-	console.log(this.results.stack());
-})
-.start()
+	console.log("PURELY EVENTED MAP -> " + this.results.actual());
+});
 
-//	
+eventedMap.start([1,2,3,4,5]);
+eventedMap.start([6,7,8,9,10]);
+
+//
 //	REDUCE
 //
-
 var reducer = herder
 .serial()
 .actor(function(it, idx, next) {
 	next(this.results.last() ? this.results.last() + it : it);
 })
 .on("result", function() {
-	console.log("REDUCED");
-	console.log(this.results.last());
+	console.log("REDUCED -> " + this.results.last());
 });
 
 reducer
@@ -173,109 +126,40 @@ reducer
 reducer
 .start(["a","b","c"]);
 
-//
-//	MAP
-//
-
-var map = herder
-.parallel()
-.on("error", function() {		
-	console.log("MAP ERRORED...");
-	this.stop();
-})
-.on("stop", function() {
-	console.log("MAP TERMINATED...");
-})
-.on("result", function() {
-	console.log("MAP");
-	console.log(this.results.stack());
-});
-
-map
-.actor(function(it, idx, next) {
-	next(it * 2);
-})
-.start([1,2,3,4,5]);
-
-map
-.start([10,20,30,40,50]);
-
-map
-.actor(function(it, idx, next) {
-	this.results.error(true);
-	next(it * 2);
-})
-.start([1,2,3,4,5]);
-
-map
-.start([10,20,30,40,50]);
-
-map
-.actor(function(it, idx, next) {
-	next(it.toUpperCase());
-})
-.start(["foo","bar"]);
-
-var eventedMap = herder
-.parallel()
-.on("data", function(idx) {
-	this.results.actual(10 * this.results.last());
-})
-.on("result", function() {
-	console.log("PURELY EVENTED MAP");
-	console.log(this.results.actual());
-});
-
-eventedMap.start([1,2,3,4,5]);
-eventedMap.start([6,7,8,9,10]);
-
 //	
 //	FILTER
 //
-var evens = herder
+herder
 .parallel()
 .actor(function(it, idx, next) {
-	it%2 === 0 && this.results.actual(it);
+	it & 1 || this.results.actual(it);
 	next();
 })
 .on("result", function() {
-	console.log("FILTERED:");
-	console.log(this.results.actual());
+	console.log("FILTERED EVEN -> " + this.results.actual());
 })
 .start([1,2,3,4,5,6,7,8,9])
 .start([234,1,777,4,6,8,2001])
 
 //	
-//	SOME
+//	FIND/SOME
 //
 var somePet = herder
 .parallel()
 .actor(function(it, idx, next) {
-	if(this.context() === it) {
-		this.stop();
-		return this.emit("result", idx);
+	if(this.context() !== it) {
+		return next();
 	}
-	next();
+	this.stop();
+	return this.emit("result", idx, it);
 })
-
-somePet
 .context("cat")
-.on("result", function(idx) {
-	console.log("SOME PET");
-	console.log(idx);
+.on("result", function(idx, item) {
+	console.log(item + " EXISTS AT -> " + idx);
 })
 .start(["fish","dog","cat","turtle"])
 
-somePet
-.context("turtle")
-.off("result")
-.on("result", function(idx) {
-	console.log("SOME PET 2");
-	console.log(idx);
-})
-.start()
-
-//
+//	
 //	EVERY
 //
 var every = herder
@@ -283,7 +167,7 @@ var every = herder
 .actor(function(it, idx, next) {
 	it !== this.context() && this.stop();
 	next();
-})
+});
 
 every
 .context(2)
@@ -298,169 +182,43 @@ every
 every
 .start([2,2,3,2,2])
 
-var eventedEvery = herder
-.parallel()
-.on("data", function() {
-	this.results.last() !== this.context() && this.stop();
-})
-.on("stop", function(idx) {
-	console.log("EVENTED EVERY: false");
-})
-.on("result", function(bool) {
-	console.log("EVENTED EVERY: true");
-})
-
-eventedEvery
-
-.context("yes")
-.start(["yes","yes","yes","yes","yes","no"])
-
-.context("yes")
-.start(["yes","yes","yes","yes","yes","yes"])
-
 //
-//	FIND
+//	Hot push to live buffer
 //
-var needleFinder = herder
+herder
 .parallel()
 .actor(function(it, idx, next) {
-	if(it === "needle") {
-		console.log("FOUND NEEDLE at index: " + idx);
-		return this.stop();
-	}
-	next();
-});
-
-needleFinder
-.start(["chicken","egg","needle","haystack"]);
-
-needleFinder
-.start(["jack","needle","hill","jill"]);
-
-//	
-//	STATE MACHINE
-//
-
-herder
-.serial()
-.addState({
-  initial: 'none',
-  events: [
-	{ name: 'openTag',  	from: ['none','inner','open','closed'],  	to: 'open' },
-	{ name: 'closeTag', 	from: ['inner','closed','open'], 			to: 'closed'},
-	{ name: 'innerHTML', 	from: ['open','inner','closed'], 			to: 'inner'}
-]})
-.actor(
-	function(it, idx, next) {
-		if(it.match(/^<\/[^>]+>$/)) {
-			this.state.closeTag();
-		} else if(it.match(/^<[^>]+>$/)) {
-			this.state.openTag();
-		} else {
-			this.state.innerHTML();
-		}
-		next(this.state.current);
-	}
-)
+	if(this.buffer.length() < 20) {
+		this.buffer.push(Math.floor(Math.random() * 100));
+	}	
+	next(it * 2);
+})
 .on("result", function() {
-	console.log("HTML STATE END");
-	console.log(this.results);
+	console.log("HOT PUSH: " + this.results.stack());
 })
-.on("openTag", function() {
-	console.log("OPEN TAG EVENT....");
-	console.log(arguments);
-})
-.on("enteropen", function() {
-	console.log("ENTER OPEN STATE...");
-	console.log(arguments);
-})
-.on("leaveopen", function() {
-	console.log("LEAVE OPEN STATE...");
-	console.log(arguments);
-})
-.start(['<html>','<div>','hello','</div>','</html>']);
-
-var login = herder
-.serial()
-.addState({
-  initial: 'none',
-  terminal: 'confirmed',
-  events: [
-	{ name: 'candidate',	from: 'none',						to: 'candidate'},
-	{ name: 'accepted', 	from: ['candidate', 'denied'],  	to: 'accepted'},
-	{ name: 'denied', 		from: ['candidate','accepted'], 	to: 'denied'},
-	{ name: 'confirmed', 	from: 'accepted', 					to: 'confirmed'}
-]})
-.on("candidate", function(ev, from, to, creds) {
-	if(creds.password === "safe!") {
-		this.state.accepted(creds);
-	}
-})
-.on("accepted", function(ev, from, to, creds) {
-	var serverLoad = 13;
-	if(serverLoad < 2) {
-		return this.state.confirmed(creds);
-	}
-	this.state.denied(creds);
-})
-.on("denied", function(ev, from, to, creds) {
-	console.log("DENIED");
-	console.log(creds);
-	this.stop();
-})
-.on("confirmed", function(ev, from, to, creds) {
-	console.log("CONFIRMED");
-	console.log(creds);
-	console.log(this)
-})
-.on("finished", function(ev, from, to, creds) {
-	console.log("FINISHED......");
-})
-.start(function(it, idx, next) {
-	this.state.candidate({
-		username	: "bobloblaw",
-		password	: "safe!"
-	});
-	next();
-})
+.start([1,2,3,4,5]);
 
 //	
 //	TIMEOUT
 //
 herder
 .serial()
-.timeout(2000)
+.timeout(200)
 .on("timeout", function(idx) {
-	console.log("TIMED OUT AT INDEX: " + idx);
+	console.log("TIMED OUT AT INDEX: " + idx, "WITH RESULTS: " + this.results.stack());
+	console.log(this);
+	console.log(this.results.stats())
+})
+.on("result", function() {
+	console.log("This only executes if timeout is NOT flagged.");
 })
 .actor(function(it, idx, next) {
-	setTimeout(next, 1000);
+	setTimeout(next, Math.floor(Math.random() * 100), it);
 })
-.start([1,2,3,4,5,6,7,8,9,10]);
 
-//
-//	Hot push to live buffer
-//
-map
-.actor(function(it, idx, next) {
-	if(this.buffer.length() < 20) {
-		this.buffer.push(parseInt(Math.random() * 1000));
-	}	
-	next(it * 2);
-})
-.start([1,2,3,4,5]);
-
-herder
-.parallel()
-.actor(function(it, idx, next) {
-	this.results.error("Boo");
-	next();
-})
-.on("error", function(idx) {
-	console.log("!!!!!!!!!ERRORED!!!!!!!!!");
-	console.log(this.results.error());
-})
-.start()
+.start([11,22,33,44,55,66,77,88,99,1010])
+.start([11,22,33,44,55,66,77,88,99,1010])
+.start([11,22,33,44,55,66,77,88,99,1010])
 
 
 //	Serial makes more sense here.
@@ -513,8 +271,9 @@ var machineRunner = herder
 	console.log("RUNNING MACHINES");
 	var s = this.results.stack();
 	var i;
+	var c = 0;
 	while(i = s.shift()) {
-		console.log(i.results.stack())
+		console.log("Machine" + ++c + " results: " + i.results.stack())
 	}
 })
 .actor(function(it, idx, next) {
@@ -547,4 +306,29 @@ machineRunner
 	machineC
 )
 
+/*
 
+//	Serial makes more sense here.
+//
+herder
+.serial(function(it, idx, next) {
+	console.log("ADDING NEW ITERATIONS " + idx);
+	var ctx = this.context();
+	++ctx;
+	if(ctx === 10) {
+		this.stop();
+	}
+	ctx > 0 && this.context(ctx) && this.buffer.push(it);
+	next()
+})
+.on("timeout", function() {
+	console.log("<<<<--------------------- timeout");
+})
+.on("stop", function() {
+	console.log("<<<<--------------------- stopped");
+})
+.context(0)
+.timeout(1)
+.start()
+
+*/
