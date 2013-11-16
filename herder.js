@@ -350,6 +350,7 @@ function Builder(buffer, iterator) {
 };
 
 Builder.prototype = new function() {
+	this._context = {};
 	this.addState = function(smDef) {
 	
 		var evs = smDef.events;
@@ -399,6 +400,15 @@ Builder.prototype = new function() {
 			return this;
 		}
 		return this._context;
+	};
+	
+	this.set = function(k, v) {
+		this._context[k] = v;
+		return this;
+	};
+	
+	this.get = function(k) {
+		return this._context[k];
 	};
 	
 	this.timeout = function(ms) {
