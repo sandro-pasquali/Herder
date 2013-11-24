@@ -204,6 +204,62 @@ var PROC_ARGS = function(args) {
 	return a0 === void 0 ? [] : a0;
 };
 
+//	##access
+//
+//	General accessor for an object.  Will get or set a value on an object.
+//
+//	@param	{Object}	ob			The object to traverse.
+//	@param	{String}	bindpath	A path to follow in the object tree, such as
+//									"this.is.a.path". For root, use "" (empty string).
+//	@param	{Mixed}		[val]		When setting, send a value.
+//
+var ACCESS = function(ob, bindpath, val) {
+
+	var props 	= bindpath ? bindpath.split('.') : [];
+	var	pL		= props.length;
+	var nopath  = bindpath === "";
+	var	i 		= 0;
+	var	p;
+
+	// 	Setting
+	//
+	//	Note that requesting a path that does not exist will result in that
+	//	path being created. This may or may not be what you want. ie:
+	//	{ top: { middle: { bottom: { foo: "bar" }}}}
+	//
+	//	.set("top.middle.new.path", "value") will create:
+	//
+	//	{ top: { middle: {
+	//						bottom: {...}
+	//						new:	{ path: "value" }
+	//					 }}}
+	//
+	if(arguments.length > 2) {
+
+		while(i < (pL -1)) {
+			p 	= props[i];
+			ob 	= ob[p] = typeof ob[p] === "object" ? ob[p] : {};
+			i++;
+		}
+
+		//	If #set was called with an empty string as path (ie. the root), simply
+		//	update #ob. Otherwise, update at path position.
+		//
+		if(nopath) {
+			ob = val;
+		} else {
+			ob[props[i]] = val;
+		}
+
+		return val;
+
+	// 	Getting
+	//
+	} else while((ob = ob[props[i]]) && ++i < pL) {};
+
+	return (ob !== void 0 && ob !== null) ? ob : null;
+};
+
 function Builder(buffer, iterator) {
 	this.start = function(newArgs) {
 
@@ -399,16 +455,16 @@ Builder.prototype = new function() {
 			this._context = ctxt;
 			return this;
 		}
-		return this._context;
+		return this;
 	};
 	
 	this.set = function(k, v) {
-		this._context[k] = v;
+		ACCESS(this._context, k, v);
 		return this;
 	};
 	
 	this.get = function(k) {
-		return this._context[k];
+		return ACCESS(this._context, k);
 	};
 	
 	this.timeout = function(ms) {
@@ -489,6 +545,9 @@ Builder.prototype = new function() {
 		}
 		return this;
 	};
+	
+	this.serial 	= facade.serial;
+	this.parallel	= facade.parallel;
 };
 
 var facade = {
