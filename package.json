@@ -1,7 +1,7 @@
 {
   "name": "herder",
   "description": "A functional programming kit for building evented execution engines that can tame async calls, with optional state machine.",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "author": "Sandro Pasquali <spasquali@gmail.com> (http://www.sandro.mobi)",
   "repository": {
     "type": "git",

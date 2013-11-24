@@ -467,6 +467,12 @@ Builder.prototype = new function() {
 		return ACCESS(this._context, k);
 	};
 	
+	this.getset = function(k, v) {
+		var old = ACCESS(this._context, k);
+		ACCESS(this._context, k, v);
+		return old;
+	};
+	
 	this.timeout = function(ms) {
 		this._timeout = ms;
 		return this;
