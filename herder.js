@@ -545,9 +545,6 @@ Builder.prototype = new function() {
 		}
 		return this;
 	};
-	
-	this.serial 	= facade.serial;
-	this.parallel	= facade.parallel;
 };
 
 var facade = {
