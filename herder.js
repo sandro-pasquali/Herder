@@ -406,7 +406,6 @@ function Builder(buffer, iterator) {
 };
 
 Builder.prototype = new function() {
-	this._context = {};
 	this.addState = function(smDef) {
 	
 		var evs = smDef.events;
@@ -459,17 +458,18 @@ Builder.prototype = new function() {
 	};
 	
 	this.set = function(k, v) {
+		this._context = this._context || {};
 		ACCESS(this._context, k, v);
 		return this;
 	};
 	
 	this.get = function(k) {
-		return ACCESS(this._context, k);
+		return ACCESS(this._context || {}, k);
 	};
 	
 	this.getset = function(k, v) {
-		var old = ACCESS(this._context, k);
-		ACCESS(this._context, k, v);
+		var old = ACCESS(this._context || {}, k);
+		ACCESS(this._context || {}, k, v);
 		return old;
 	};
 	
@@ -480,14 +480,13 @@ Builder.prototype = new function() {
 
 	this.on = function(event, fn) {
 		this._events = this._events || {};
-		this._events[event] = this._events[event] || [];
-		this._events[event].push(fn);
+		this._events[event] = fn;
 		return this;
 	};
 	
 	this.off = function(event) {
-		if(this._events && this._events[event]) {
-			this._events[event].length = 0;
+		if(this._events) {
+			delete this._events[event];
 		}
 		return this;
 	};
@@ -535,13 +534,8 @@ Builder.prototype = new function() {
 			return;
 		}
 
-		var len = this._events[event].length;
-		var x 	= 0;
-		
-		while(x < len) {
-			this._events[event][x].apply(this, args);
-			x++;
-		}
+		this._events[event].apply(this, args);
+
 		return this;
 	};
 	
