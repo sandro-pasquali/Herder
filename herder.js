@@ -463,7 +463,15 @@ Builder.prototype = new function() {
 		return this;
 	};
 	
+	//	##get
+	//	
+	//	@param	{String}	[k]	The path to the node to fetch. If no arguments
+	//							are sent, #get returns the full #_context.
+	//
 	this.get = function(k) {
+		if(arguments.length === 0) {
+			return this._context;
+		}
 		return ACCESS(this._context || {}, k);
 	};
 	
@@ -479,14 +487,23 @@ Builder.prototype = new function() {
 	};
 
 	this.on = function(event, fn) {
-		this._events = this._events || {};
-		this._events[event] = fn;
+		var evs = this._events = this._events || {};
+		evs[event] = evs[event] || [];
+		evs[event].push(fn);
+		
+		if(evs[event].length === 11) {
+			console.warn('More than 10 listeners are bound to `' + event + '`. You may want to investigate this.');
+		}
+		
 		return this;
 	};
 	
-	this.off = function(event) {
-		if(this._events) {
-			delete this._events[event];
+	this.off = function(event, fn) {
+		var evs = this._events;
+		if(evs) {
+			evs[event] = evs[event].filter(function(efn) {
+				return efn !== fn;
+			});
 		}
 		return this;
 	};
@@ -529,14 +546,19 @@ Builder.prototype = new function() {
 	};
 	
 	this.emit = function(event) {
-		var args = ARR_SLICE.call(arguments, 1);
-		if(!this._events || !this._events[event]) {
+		var args 	= ARR_SLICE.call(arguments, 1);
+		var _this	= this;
+		var evs		= _this._events;
+		
+		if(!evs || !evs[event]) {
 			return;
 		}
 
-		this._events[event].apply(this, args);
+		evs[event].forEach(function(fn) {
+			fn.apply(_this, args);
+		});
 
-		return this;
+		return _this;
 	};
 	
 	this.stop = function() {

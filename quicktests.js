@@ -277,7 +277,7 @@ var machineRunner = herder
 	}
 })
 .actor(function(it, idx, next) {
-	next(it.start(this.context().shift()));
+	next(it.start(this.get().shift()));
 });
 
 
