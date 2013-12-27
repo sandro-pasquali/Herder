@@ -511,7 +511,7 @@ Builder.prototype = new function() {
 	this.once = function(event, fn) {
 		var _this = this;
 		var f = function() {
-			fn.call(ARR_SLICE.call(arguments));
+			fn.apply(this, ARR_SLICE.call(arguments));
 			_this.off(event, f);
 		};
 		
