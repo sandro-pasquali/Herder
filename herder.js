@@ -525,38 +525,6 @@ Builder.prototype = new function() {
 		return this;
 	};
 	
-	this.link = function(route, arg) {
-
-		var i = 0;
-		var $this = this;
-		
-		$this._links = $this._links || {}
-		
-		var r = $this._links[route];
-
-		if(typeof arg === "function") {
-			$this._links[route] = r || [];
-			r.push(function() {
-				arg.apply($this, ARR_SLICE.call(arguments));
-			});
-		} else {
-			for(; i < r.length; i++) {
-				r[i](arg);
-			}
-		}
-		
-		return $this;
-	};
-	
-	this.unlink = function(route) {
-		if(!route) {
-			this._links = {};
-		} else {
-			delete this._links[route];
-		}
-		return this;
-	};
-	
 	this.emit = function(event) {
 		var args 	= ARR_SLICE.call(arguments, 1);
 		var _this	= this;
