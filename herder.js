@@ -508,6 +508,18 @@ Builder.prototype = new function() {
 		return this;
 	};
 	
+	this.once = function(event, fn) {
+		var _this = this;
+		var f = function() {
+			_this.off(event, f);
+			fn.call(ARR_SLICE.call(arguments));
+		};
+		
+		_this.on(event, f);
+		
+		return _this;
+	};
+	
 	this.async = function() {
 		this._async = true;
 		return this;
