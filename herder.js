@@ -446,12 +446,14 @@ Builder.prototype = new function() {
 	
 	this.actor = function() {
 		this._actor = PROC_ARGS(arguments);
+		
 		return this;
 	};
 	
 	this.context = function(ctxt) {
 		if(ctxt !== void 0) {
 			this._context = ctxt;
+			
 			return this;
 		}
 		return this;
@@ -460,6 +462,7 @@ Builder.prototype = new function() {
 	this.set = function(k, v) {
 		this._context = this._context || {};
 		ACCESS(this._context, k, v);
+		
 		return this;
 	};
 	
@@ -469,20 +472,29 @@ Builder.prototype = new function() {
 	//							are sent, #get returns the full #_context.
 	//
 	this.get = function(k) {
-		if(arguments.length === 0) {
+		if(!k) {
 			return this._context;
 		}
 		return ACCESS(this._context || {}, k);
 	};
 	
+	//	##getset
+	//
+	//	Sets new value, and returns old value.
+	//
+	//	@param 	{String} 	k 	The path to the key
+	//	@param	{Mixed}		v	The value to set at key
+	//
 	this.getset = function(k, v) {
-		var old = ACCESS(this._context || {}, k);
-		ACCESS(this._context || {}, k, v);
+		var old = this.get(k);
+		this.set(k, v);
+		
 		return old;
 	};
 	
 	this.timeout = function(ms) {
 		this._timeout = ms;
+		
 		return this;
 	};
 
@@ -531,7 +543,7 @@ Builder.prototype = new function() {
 		var evs		= _this._events;
 		
 		if(!evs || !evs[event]) {
-			return;
+			return _this;
 		}
 
 		evs[event].forEach(function(fn) {
@@ -547,6 +559,23 @@ Builder.prototype = new function() {
 		}
 		return this;
 	};
+	
+	//	##override
+	//	
+	//	Replaces method in current herder instance with a new handler.
+	//	Overriding is final. If method does not exist, it is created.
+	//
+	//	@param	{String}	name	Name of the method to override in this instance of herder
+	//	@param	{Function}	fn		The new method
+	//
+	this.override = function(name, fn) {
+	
+		if(name && fn) {
+			this[name] = fn;
+		}
+
+		return this;
+	}
 };
 
 var facade = {
