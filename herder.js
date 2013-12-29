@@ -563,7 +563,8 @@ Builder.prototype = new function() {
 	//	##override
 	//	
 	//	Replaces method in current herder instance with a new handler.
-	//	Overriding is final. If method does not exist, it is created.
+	//	If method does not exist, it is created.
+	//	The replaced method is preserved, and can be accessed via __Name__
 	//
 	//	@param	{String}	name	Name of the method to override in this instance of herder
 	//	@param	{Function}	fn		The new method
@@ -571,6 +572,9 @@ Builder.prototype = new function() {
 	this.override = function(name, fn) {
 	
 		if(name && fn) {
+			if(this[name]) {
+				this['__' + name + '__'] = this[name];
+			}
 			this[name] = fn;
 		}
 
