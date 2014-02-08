@@ -2,6 +2,42 @@ if(typeof exports === 'object' && exports) {
     var herder = require("./herder.js");
 } 
 
+//	data store methods
+//
+
+//
+//	set/get
+//
+var h1 = herder.serial().set("foo.bar", "baz");
+console.log("set/get (should be `baz`): ", h1.get("foo.bar"));
+
+//
+//	push
+//
+h1
+.set('arrale', [1,2,3])
+.push('arrale', 44, 55, 66)
+
+console.log(".push (should be [1,2,3,44,55,66]): ", h1.get('arrale'));
+
+//	
+//	pop
+//
+console.log(".pop get val (should be 66): ", h1.pop('arrale'));
+console.log(".pop check orig (should be [1,2,3,44,55]): ", h1.get('arrale'));
+
+//
+//	unshift
+//
+h1.unshift('arrale', 'a', 'b');
+console.log(".unshift (should be ['a','b',1,2,3,44,55]): ", h1.get('arrale'));
+
+//
+//	shift
+//
+console.log(".shift get val (should be 'a'): ", h1.shift('arrale'));
+console.log(".shift check orig (should be ['b',1,2,3,44,55]): ", h1.get('arrale'));
+
 //	
 //	SERIAL ASYNC
 //

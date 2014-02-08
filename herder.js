@@ -459,6 +459,8 @@ Builder.prototype = new function() {
 		return this;
 	};
 	
+	//	##set
+	//
 	this.set = function(k, v) {
 		this._context = this._context || {};
 		ACCESS(this._context, k, v);
@@ -490,6 +492,60 @@ Builder.prototype = new function() {
 		this.set(k, v);
 		
 		return old;
+	};
+	
+	//	##push
+	//
+	this.push = function(k) {
+	
+		var adding 	= ARR_SLICE.call(arguments, 1);
+		var cur		= this.get(k);
+		
+		if(cur instanceof Array) {
+			this.set(k, cur.concat(adding));
+		}
+		
+		return this;
+	};
+	
+	//	##pop
+	//
+	this.pop = function(k) {
+
+		var cur	= this.get(k);
+		
+		if(cur instanceof Array) {
+			return cur.pop();
+		}
+		
+		return null;
+	};
+	
+	//	##unshift
+	//
+	this.unshift = function(k) {
+	
+		var adding 	= ARR_SLICE.call(arguments, 1);
+		var cur		= this.get(k);
+		
+		if(cur instanceof Array) {
+			this.set(k, adding.concat(cur));
+		}
+		
+		return this;
+	};
+	
+	//	##shift
+	//
+	this.shift = function(k) {
+
+		var cur	= this.get(k);
+		
+		if(cur instanceof Array) {
+			return cur.shift();
+		}
+		
+		return null;
 	};
 	
 	this.timeout = function(ms) {
@@ -564,7 +620,7 @@ Builder.prototype = new function() {
 	//	
 	//	Replaces method in current herder instance with a new handler.
 	//	If method does not exist, it is created.
-	//	The replaced method is preserved, and can be accessed via __Name__
+	//	The replaced method is preserved, and can be accessed via __name__
 	//
 	//	@param	{String}	name	Name of the method to override in this instance of herder
 	//	@param	{Function}	fn		The new method
