@@ -496,15 +496,22 @@ Builder.prototype = new function() {
 	
 	//	##push
 	//
+	//
+	//	@param	{String}	k		The keypath to push onto. If Array doesn't exist, create.
+	//	@param	{Mixed}		adding	Either a single value, or an array of values
+	//
 	//	If the target node is not an array, an array will be created.
 	//
-	this.push = function(k) {
+	this.push = function(k, adding) {
 	
-		var adding 	= ARR_SLICE.call(arguments, 1);
-		var cur		= this.get(k);
+		if(adding === void 0) {
+			throw new Error('No argument sent to #push');
+		}
+	
+		var cur	= this.get(k);
 		
 		cur = (cur instanceof Array) ? cur : [];
-		cur = cur.concat(adding);
+		cur = cur.concat((adding instanceof Array) ? adding : [adding]);
 		
 		this.set(k, cur);
 
@@ -526,15 +533,21 @@ Builder.prototype = new function() {
 	
 	//	##unshift
 	//
+	//	@param	{String}	k		The keypath to shift onto. If Array doesn't exist, create.
+	//	@param	{Mixed}		adding	Either a single value, or an array of values
+	//
 	//	If the target node is not an array, an array will be created.
 	//
-	this.unshift = function(k) {
+	this.unshift = function(k, adding) {
 	
-		var adding 	= ARR_SLICE.call(arguments, 1);
-		var cur		= this.get(k);
+		if(adding === void 0) {
+			throw new Error('No argument sent to #unshift');
+		}
+	
+		var cur	= this.get(k);
 		
 		cur = (cur instanceof Array) ? cur : [];
-		cur = adding.concat(cur);
+		cur = ((adding instanceof Array) ? adding : [adding]).concat(cur);
 		
 		this.set(k, cur);
 		

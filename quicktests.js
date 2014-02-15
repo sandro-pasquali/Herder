@@ -16,7 +16,7 @@ console.log("set/get (should be `baz`): ", h1.get("foo.bar"));
 //
 h1
 .set('arrale', [1,2,3])
-.push('arrale', 44, 55, 66)
+.push('arrale', [44, 55, 66])
 
 console.log(".push (should be [1,2,3,44,55,66]): ", h1.get('arrale'));
 
@@ -29,7 +29,7 @@ console.log(".pop check orig (should be [1,2,3,44,55]): ", h1.get('arrale'));
 //
 //	unshift
 //
-h1.unshift('arrale', 'a', 'b');
+h1.unshift('arrale', ['a', 'b']);
 console.log(".unshift (should be ['a','b',1,2,3,44,55]): ", h1.get('arrale'));
 
 //
