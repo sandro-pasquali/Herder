@@ -12,6 +12,20 @@ var h1 = herder.serial().set("foo.bar", "baz");
 console.log("set/get (should be `baz`): ", h1.get("foo.bar"));
 
 //
+//	multi set/get
+//
+h1.set({
+	'boop.1'	: 'fb1',
+	'boop.2'	: 'fb2',
+	'boop.3'	: 'fb3'
+})
+console.log("multi-set (should be fb[1..3])", h1.get('boop'));
+console.log("multi-get (should be map with paths -> fb2, baz)", h1.get([
+	'boop.2',
+	'foo.bar'
+]));
+
+//
 //	push
 //
 h1

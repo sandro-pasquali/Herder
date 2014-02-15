@@ -406,6 +406,9 @@ function Builder(buffer, iterator) {
 };
 
 Builder.prototype = new function() {
+
+	//	##addState
+	//
 	this.addState = function(smDef) {
 	
 		var evs = smDef.events;
@@ -444,12 +447,16 @@ Builder.prototype = new function() {
 		return this;
 	};
 	
+	//	##actor
+	//
 	this.actor = function() {
 		this._actor = PROC_ARGS(arguments);
 		
 		return this;
 	};
 	
+	//	##context
+	//
 	this.context = function(ctxt) {
 		if(ctxt !== void 0) {
 			this._context = ctxt;
@@ -460,10 +467,26 @@ Builder.prototype = new function() {
 	};
 	
 	//	##set
+	//	
+	//	@param	{Mixed}		[k]	The path to set on. Can be path string, or a map of
+	//							path -> value pairs.
+	//	@param	{Mixed}		[v]	The value to set. If #k is a map, this is ignored.
+	//
+	//	Note that this._context is initialized on first #set.
 	//
 	this.set = function(k, v) {
-		this._context = this._context || {};
-		ACCESS(this._context, k, v);
+		
+		var ctxt = this._context = this._context || {};
+		var p;
+		
+		if(typeof k === "object") {
+			for(p in k) {
+				ACCESS(ctxt, p, k[p]);
+			}
+			return this;
+		}
+		
+		ACCESS(ctxt, k, v);
 		
 		return this;
 	};
@@ -471,13 +494,28 @@ Builder.prototype = new function() {
 	//	##get
 	//	
 	//	@param	{String}	[k]	The path to the node to fetch. If no arguments
-	//							are sent, #get returns the full #_context.
+	//							are sent, #get returns the full #_context. If an array
+	//							of paths is sent, a map of results is returned, keyed
+	//							by path.
 	//
 	this.get = function(k) {
+		
+		var ctxt	= this._context || {};
+		var i 		= 0;
+		var acc 	= {};		
+		
 		if(!k) {
-			return this._context;
+			return ctxt;
 		}
-		return ACCESS(this._context || {}, k);
+				
+		if(k instanceof Array) {
+			for(; i < k.length; i++) {
+				acc[k[i]] = ACCESS(ctxt, k[i]);
+			}
+			return acc;
+		}
+		
+		return ACCESS(ctxt, k);
 	};
 	
 	//	##getset
@@ -486,6 +524,8 @@ Builder.prototype = new function() {
 	//
 	//	@param 	{String} 	k 	The path to the key
 	//	@param	{Mixed}		v	The value to set at key
+	//
+	//	Note that, unlike #get and #set, #getset accepts only singular paths.
 	//
 	this.getset = function(k, v) {
 		var old = this.get(k);
@@ -567,12 +607,16 @@ Builder.prototype = new function() {
 		return null;
 	};
 	
+	//	##timeout
+	//
 	this.timeout = function(ms) {
 		this._timeout = ms;
 		
 		return this;
 	};
 
+	//	##on
+	//
 	this.on = function(event, fn) {
 		var evs = this._events = this._events || {};
 		evs[event] = evs[event] || [];
@@ -585,6 +629,8 @@ Builder.prototype = new function() {
 		return this;
 	};
 	
+	//	##off
+	//
 	this.off = function(event, fn) {
 		var evs = this._events;
 		if(evs) {
@@ -595,6 +641,8 @@ Builder.prototype = new function() {
 		return this;
 	};
 	
+	//	##once
+	//
 	this.once = function(event, fn) {
 		var _this = this;
 		var f = function() {
@@ -607,11 +655,15 @@ Builder.prototype = new function() {
 		return _this;
 	};
 	
+	//	##async
+	//
 	this.async = function() {
 		this._async = true;
 		return this;
 	};
 	
+	//	##emit
+	//
 	this.emit = function(event) {
 		var args 	= ARR_SLICE.call(arguments, 1);
 		var _this	= this;
@@ -628,6 +680,8 @@ Builder.prototype = new function() {
 		return _this;
 	};
 	
+	//	##stop
+	//
 	this.stop = function() {
 		if(!this._stop) {
 			this._stop = 1;
