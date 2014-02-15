@@ -496,15 +496,17 @@ Builder.prototype = new function() {
 	
 	//	##push
 	//
+	//	If the target node is not an array, an array will be created.
+	//
 	this.push = function(k) {
 	
 		var adding 	= ARR_SLICE.call(arguments, 1);
 		var cur		= this.get(k);
 		
-		if(cur instanceof Array) {
-			this.set(k, cur.concat(adding));
-		}
+		cur = (cur instanceof Array) ? cur : [];
 		
+		this.set(k, cur.concat(adding));
+
 		return this;
 	};
 	
@@ -523,14 +525,16 @@ Builder.prototype = new function() {
 	
 	//	##unshift
 	//
+	//	If the target node is not an array, an array will be created.
+	//
 	this.unshift = function(k) {
 	
 		var adding 	= ARR_SLICE.call(arguments, 1);
 		var cur		= this.get(k);
 		
-		if(cur instanceof Array) {
-			this.set(k, adding.concat(cur));
-		}
+		cur = (cur instanceof Array) ? cur : [];
+		
+		this.set(k, adding.concat(cur));
 		
 		return this;
 	};
