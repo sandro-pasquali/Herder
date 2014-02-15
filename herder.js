@@ -504,10 +504,11 @@ Builder.prototype = new function() {
 		var cur		= this.get(k);
 		
 		cur = (cur instanceof Array) ? cur : [];
+		cur = cur.concat(adding);
 		
-		this.set(k, cur.concat(adding));
+		this.set(k, cur);
 
-		return this;
+		return cur.length;
 	};
 	
 	//	##pop
@@ -533,10 +534,11 @@ Builder.prototype = new function() {
 		var cur		= this.get(k);
 		
 		cur = (cur instanceof Array) ? cur : [];
+		cur = adding.concat(cur);
 		
-		this.set(k, adding.concat(cur));
+		this.set(k, cur);
 		
-		return this;
+		return cur.length;
 	};
 	
 	//	##shift
