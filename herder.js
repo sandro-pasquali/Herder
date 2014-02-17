@@ -607,6 +607,40 @@ Builder.prototype = new function() {
 		return null;
 	};
 	
+	//	##increment
+	//
+	this.increment = function(key, operand) {
+	
+		var cur = +this.get(key);	
+		var fin;
+		
+		operand = (typeof operand === 'undefined') ? 1 : +operand;
+		
+		if(!isNaN(operand) && !isNaN(cur)) {
+			fin = cur + operand;
+			this.set(key, fin);
+		}
+		
+		return fin;
+	};
+	
+	//	##decrement
+	//
+	this.decrement = function(key, operand) {
+
+		var cur = +this.get(key);	
+		var fin;
+		
+		operand = (typeof operand === 'undefined') ? 1 : +operand;
+		
+		if(!isNaN(operand) && !isNaN(cur)) {
+			fin = cur - operand;
+			this.set(key, fin);
+		}
+		
+		return fin;
+	};
+	
 	//	##timeout
 	//
 	this.timeout = function(ms) {

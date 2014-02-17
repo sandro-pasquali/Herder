@@ -25,7 +25,18 @@ console.log("multi-get (should be map with paths -> fb2, baz)", h1.get([
 	'foo.bar'
 ]));
 
+//	
+//	increment/decrement
 //
+h1.set('slot', 1);
+h1.increment('slot');
+h1.increment('slot');
+console.log('increment: should be 4: ', h1.increment('slot'));
+
+h1.decrement('slot');
+h1.decrement('slot');
+console.log('decrement: should be 1: ', h1.decrement('slot'));
+
 //	push
 //
 h1
